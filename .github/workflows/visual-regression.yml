@@ -78,7 +78,7 @@ jobs:
             --print \
             --mcp-config .claude/mcp-config.json \
             -- \
-            "Navigate to ${{ inputs.url }} and capture screenshots. Save to ./screenshots/: desktop-full.png (1920x1080), tablet-full.png (768x1024), mobile-full.png (375x667), desktop-fold.png, navigation.png, footer.png. Wait for page load before each screenshot."
+            'Navigate to ${{ inputs.url }} and capture screenshots. Save to ./screenshots/: desktop-full.png at 1920x1080, tablet-full.png at 768x1024, mobile-full.png at 375x667, desktop-fold.png, navigation.png, footer.png. Wait for page load before each screenshot.'
 
       - name: Run Visual Regression Comparison
         if: ${{ !inputs.update_baseline }}

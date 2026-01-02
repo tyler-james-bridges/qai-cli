@@ -262,6 +262,7 @@ async function getAriaSnapshot(page) {
  */
 async function selectByRef(page, ref) {
   return await page.evaluateHandle((ref) => {
+    // eslint-disable-next-line no-undef
     return window.__qaRefs?.[ref] || null;
   }, ref);
 }

@@ -4,6 +4,7 @@ Automated, human-like testing for your Pull Requests using Claude Code + Playwri
 
 [![Live Demo](https://img.shields.io/badge/demo-live-brightgreen)](https://tyler-james-bridges.github.io/ai-qa-engineer/)
 [![Run QA](https://img.shields.io/badge/run-QA%20test-blue)](../../actions/workflows/qa-engineer.yml)
+[![Lint](https://github.com/tyler-james-bridges/ai-qa-engineer/actions/workflows/lint.yml/badge.svg)](https://github.com/tyler-james-bridges/ai-qa-engineer/actions/workflows/lint.yml)
 
 > **Credit:** Based on the concept by [@alexanderOpalic](https://alexop.dev/posts/building_ai_qa_engineer_claude_code_playwright/).
 

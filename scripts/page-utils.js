@@ -101,8 +101,6 @@ async function waitForPageReady(page, options = {}) {
     await page.waitForLoadState('domcontentloaded', { timeout });
 
     // Now wait for network to settle
-    const networkSettleStart = Date.now();
-
     while (Date.now() - startTime < timeout) {
       // Filter to only critical pending requests
       const criticalPending = Array.from(pendingRequests.values()).filter(req => {
@@ -240,13 +238,13 @@ function createNetworkLogger(page) {
      */
     getReport() {
       const summary = this.getSummary();
-      let report = `### Network Summary\n`;
+      let report = '### Network Summary\n';
       report += `- Total requests: ${summary.totalRequests}\n`;
       report += `- Failed requests: ${summary.failedRequests}\n`;
       report += `- Slow requests (>${SLOW_THRESHOLD}ms): ${summary.slowRequests}\n\n`;
 
       if (summary.failures.length > 0) {
-        report += `#### Failed Requests\n`;
+        report += '#### Failed Requests\n';
         summary.failures.forEach(f => {
           report += `- \`${f.method} ${f.url}\`\n`;
           report += `  - Status: ${f.status || 'N/A'}\n`;
@@ -256,7 +254,7 @@ function createNetworkLogger(page) {
       }
 
       if (summary.slow.length > 0) {
-        report += `#### Slow Requests\n`;
+        report += '#### Slow Requests\n';
         summary.slow.forEach(s => {
           report += `- \`${s.url}\` (${s.duration}ms)\n`;
         });
@@ -322,12 +320,12 @@ function createConsoleLogger(page) {
     },
 
     getReport() {
-      let report = `### Console Output\n`;
+      let report = '### Console Output\n';
       report += `- Errors: ${errors.length}\n`;
       report += `- Warnings: ${warnings.length}\n\n`;
 
       if (errors.length > 0) {
-        report += `#### Errors\n`;
+        report += '#### Errors\n';
         errors.forEach((e, i) => {
           report += `${i + 1}. \`${e.text}\`\n`;
           if (e.location?.url) {
@@ -338,7 +336,7 @@ function createConsoleLogger(page) {
       }
 
       if (warnings.length > 0) {
-        report += `#### Warnings\n`;
+        report += '#### Warnings\n';
         warnings.forEach((w, i) => {
           report += `${i + 1}. \`${w.text}\`\n`;
         });

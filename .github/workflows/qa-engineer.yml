@@ -19,6 +19,11 @@ on:
         required: false
         type: string
         default: 'all'
+      fail_on_bugs:
+        description: 'Fail workflow if critical/high bugs found'
+        required: false
+        type: boolean
+        default: true
 
 permissions:
   contents: read
@@ -217,3 +222,32 @@ jobs:
           else
             echo "⚠️ No QA report generated. Check the logs for details." >> $GITHUB_STEP_SUMMARY
           fi
+
+      - name: Check for critical bugs
+        if: ${{ inputs.fail_on_bugs }}
+        run: |
+          if [ ! -f "qa-report.md" ]; then
+            echo "No QA report found - skipping bug check"
+            exit 0
+          fi
+
+          echo "Checking for critical/high severity bugs..."
+
+          # Case-insensitive search for critical or high severity indicators
+          CRITICAL_COUNT=$(grep -i -c -E '(critical|severity:\s*critical)' qa-report.md || echo "0")
+          HIGH_COUNT=$(grep -i -c -E '(high|severity:\s*high)' qa-report.md || echo "0")
+
+          echo "Critical bugs: $CRITICAL_COUNT"
+          echo "High severity bugs: $HIGH_COUNT"
+
+          if [ "$CRITICAL_COUNT" -gt 0 ]; then
+            echo "::error::Found $CRITICAL_COUNT critical bug(s) - failing workflow"
+            exit 1
+          fi
+
+          if [ "$HIGH_COUNT" -gt 0 ]; then
+            echo "::warning::Found $HIGH_COUNT high severity bug(s) - failing workflow"
+            exit 1
+          fi
+
+          echo "✓ No critical/high severity bugs found"

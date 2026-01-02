@@ -2,7 +2,7 @@
 
 Automated, human-like testing for your Pull Requests using Claude Code + Playwright MCP.
 
-Inspired by [@alexanderOpalic's tweet](https://x.com/alexanderOpalic/status/1874477749618147451)
+> **Credit:** This project builds on the concept demonstrated by [@alexanderOpalic](https://alexop.dev/posts/building_ai_qa_engineer_claude_code_playwright/), who pioneered the idea of combining Claude Code with Playwright MCP for AI-driven QA testing. This implementation uses the Claude Code CLI directly with a standalone MCP configuration.
 
 ## How It Works
 

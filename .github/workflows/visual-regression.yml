@@ -74,26 +74,11 @@ jobs:
           echo "Capturing screenshots for visual regression testing..."
           echo "URL: ${{ inputs.url }}"
 
-          cat > /tmp/prompt.txt << 'PROMPT_EOF'
-          Navigate to TEST_URL_PLACEHOLDER and capture screenshots for visual regression testing.
-
-          Capture these specific screenshots:
-          1. Full page screenshot at desktop (1920x1080) - save as desktop-full.png
-          2. Full page screenshot at tablet (768x1024) - save as tablet-full.png
-          3. Full page screenshot at mobile (375x667) - save as mobile-full.png
-          4. Above-the-fold screenshot at desktop - save as desktop-fold.png
-          5. Navigation/header area - save as navigation.png
-          6. Footer area - save as footer.png
-
-          For each viewport wait for the page to fully load and any animations to complete.
-          Save all screenshots to the ./screenshots/ directory.
-          PROMPT_EOF
-
-          sed -i "s|TEST_URL_PLACEHOLDER|${{ inputs.url }}|g" /tmp/prompt.txt
-
-          PROMPT="Navigate to $TEST_URL and capture screenshots for visual regression testing. Capture these specific screenshots: 1. Full page screenshot at desktop (1920x1080) - save as 'desktop-full.png' 2. Full page screenshot at tablet (768x1024) - save as 'tablet-full.png' 3. Full page screenshot at mobile (375x667) - save as 'mobile-full.png' 4. Above-the-fold screenshot at desktop - save as 'desktop-fold.png' 5. Navigation/header area - save as 'navigation.png' 6. Footer area - save as 'footer.png'. For each viewport: Wait for the page to fully load (network idle), wait for any animations to complete, hide any cookie banners or popups if present. Save all screenshots to the ./screenshots/ directory."
-
-          npx @anthropic-ai/claude-code --print --mcp-config .claude/mcp-config.json "$PROMPT"
+          npx @anthropic-ai/claude-code \
+            --print \
+            --mcp-config .claude/mcp-config.json \
+            -- \
+            "Navigate to ${{ inputs.url }} and capture screenshots. Save to ./screenshots/: desktop-full.png (1920x1080), tablet-full.png (768x1024), mobile-full.png (375x667), desktop-fold.png, navigation.png, footer.png. Wait for page load before each screenshot."
 
       - name: Run Visual Regression Comparison
         if: ${{ !inputs.update_baseline }}

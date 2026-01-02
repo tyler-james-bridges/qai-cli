@@ -9,6 +9,11 @@ on:
         description: 'URL to test (optional, defaults to PR preview URL)'
         required: false
         type: string
+      focus:
+        description: 'Focus area (optional): accessibility, performance, forms, mobile, all'
+        required: false
+        type: string
+        default: 'all'
 
 permissions:
   contents: read
@@ -18,7 +23,7 @@ permissions:
 jobs:
   qa-test:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
 
     steps:
       - name: Checkout repository
@@ -29,7 +34,7 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Install Playwright
+      - name: Install Dependencies
         run: |
           npm init -y
           npm install playwright @anthropic-ai/claude-code
@@ -54,40 +59,86 @@ jobs:
           echo "preview_url=$PREVIEW_URL" >> $GITHUB_OUTPUT
           echo "Testing URL: $PREVIEW_URL"
 
+      - name: Create Screenshots Directory
+        run: mkdir -p screenshots
+
       - name: Run AI QA Engineer
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           TEST_URL: ${{ steps.preview.outputs.preview_url || inputs.url }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
+          TEST_FOCUS: ${{ inputs.focus || 'all' }}
         run: |
           npx claude-code --print \
             --mcp-config .claude/mcp-config.json \
             --system-prompt "$(cat .claude/qa-engineer-prompt.md)" \
-            "Test the website at $TEST_URL.
+            "Test the website at $TEST_URL
 
-             Perform comprehensive QA testing:
-             1. Test on desktop viewport (1920x1080)
-             2. Test on mobile viewport (375x667)
-             3. Test all interactive elements
-             4. Check for visual bugs, broken layouts, console errors
-             5. Try to break things - test edge cases
-             6. Take screenshots of any issues found
+             ## Test Configuration
+             - Focus area: $TEST_FOCUS
+             - PR Number: $PR_NUMBER
 
-             Create a detailed markdown report with:
-             - Summary of findings
-             - Screenshots with descriptions
-             - Steps to reproduce any bugs
-             - Severity ratings (critical/high/medium/low)
+             ## Required Testing
 
-             Save the report to qa-report.md"
+             ### 1. Network & Console Health (First!)
+             Before any visual testing:
+             - Monitor for failed network requests (4xx, 5xx errors)
+             - Monitor for console errors and warnings
+             - Note any slow API calls (>3 seconds)
+             - Check for missing resources (404s)
+
+             ### 2. Viewport Testing
+             Test on these viewports:
+             - Mobile: 375x667 (iPhone SE)
+             - Tablet: 768x1024 (iPad)
+             - Desktop: 1920x1080 (Full HD)
+
+             ### 3. Functional Testing
+             - Test all interactive elements (buttons, links, forms)
+             - Test navigation flows
+             - Test any dynamic content loading
+             - Try to break things - rapid clicks, edge cases
+
+             ### 4. Visual Testing
+             - Check for layout issues, overflow, cut-off text
+             - Verify responsive design works across viewports
+             - Check alignment and spacing
+
+             ### 5. Accessibility
+             - Tab navigation works
+             - Focus states visible
+             - Images have alt text
+
+             ## Output Requirements
+
+             1. Save screenshots to ./screenshots/ directory
+             2. Create qa-report.md with:
+                - Summary (bugs found, severity breakdown)
+                - Network health section
+                - Console output section
+                - Detailed bug reports with steps to reproduce
+                - Screenshots referenced by filename
+                - Recommendations prioritized by impact
+
+             Be thorough. Think like a user who wants to break things."
 
       - name: Upload Screenshots
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: qa-screenshots
+          name: qa-screenshots-${{ github.run_number }}
           path: screenshots/
-          retention-days: 7
+          retention-days: 14
+          if-no-files-found: ignore
+
+      - name: Upload QA Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: qa-report-${{ github.run_number }}
+          path: qa-report.md
+          retention-days: 14
+          if-no-files-found: ignore
 
       - name: Post QA Report to PR
         if: github.event_name == 'pull_request' && always()
@@ -96,15 +147,22 @@ jobs:
           script: |
             const fs = require('fs');
 
-            let report = '## AI QA Engineer Report\n\n';
+            let report = '## 🔍 AI QA Engineer Report\n\n';
 
             if (fs.existsSync('qa-report.md')) {
-              report += fs.readFileSync('qa-report.md', 'utf8');
+              const content = fs.readFileSync('qa-report.md', 'utf8');
+              report += content;
+
+              // Add artifacts link
+              report += '\n\n### 📎 Artifacts\n';
+              report += `- [Screenshots](../actions/runs/${{ github.run_id }})\n`;
+              report += `- [Full Report](../actions/runs/${{ github.run_id }})\n`;
             } else {
-              report += '⚠️ QA report was not generated. Check the workflow logs for details.';
+              report += '⚠️ QA report was not generated. Check the [workflow logs](../actions/runs/${{ github.run_id }}) for details.';
             }
 
-            report += '\n\n---\n*Automated testing by AI QA Engineer using Claude Code + Playwright*';
+            report += '\n\n---\n';
+            report += '*Automated testing by [AI QA Engineer](https://github.com/tyler-james-bridges/ai-qa-engineer) using Claude Code + Playwright*';
 
             // Find existing comment
             const { data: comments } = await github.rest.issues.listComments({

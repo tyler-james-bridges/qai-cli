@@ -63,7 +63,9 @@ const SNAPSHOT_SCRIPT = `
       case 'HEADER': return 'banner';
       case 'FOOTER': return 'contentinfo';
       case 'ASIDE': return 'complementary';
-      case 'SECTION': return el.getAttribute('aria-label') || el.getAttribute('aria-labelledby') ? 'region' : null;
+      case 'SECTION':
+        return el.getAttribute('aria-label') || el.getAttribute('aria-labelledby')
+          ? 'region' : null;
       case 'FORM': return 'form';
       case 'TABLE': return 'table';
       case 'TH': return 'columnheader';

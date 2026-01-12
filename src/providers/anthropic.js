@@ -21,19 +21,19 @@ class AnthropicProvider extends BaseProvider {
         source: {
           type: 'base64',
           media_type: 'image/png',
-          data: screenshot.buffer.toString('base64')
-        }
+          data: screenshot.buffer.toString('base64'),
+        },
       });
       content.push({
         type: 'text',
-        text: `[Screenshot: ${screenshot.viewport} - ${screenshot.width}x${screenshot.height}]`
+        text: `[Screenshot: ${screenshot.viewport} - ${screenshot.width}x${screenshot.height}]`,
       });
     }
 
     // Add the analysis prompt
     content.push({
       type: 'text',
-      text: prompt
+      text: prompt,
     });
 
     const response = await this.client.messages.create({
@@ -42,9 +42,9 @@ class AnthropicProvider extends BaseProvider {
       messages: [
         {
           role: 'user',
-          content
-        }
-      ]
+          content,
+        },
+      ],
     });
 
     const responseText = response.content

@@ -20,11 +20,11 @@ class GeminiProvider extends BaseProvider {
       parts.push({
         inlineData: {
           mimeType: 'image/png',
-          data: screenshot.buffer.toString('base64')
-        }
+          data: screenshot.buffer.toString('base64'),
+        },
       });
       parts.push({
-        text: `[Screenshot: ${screenshot.viewport} - ${screenshot.width}x${screenshot.height}]`
+        text: `[Screenshot: ${screenshot.viewport} - ${screenshot.width}x${screenshot.height}]`,
       });
     }
 

@@ -8,7 +8,7 @@ const PROVIDERS = {
   openai: OpenAIProvider,
   codex: OpenAIProvider, // Codex uses OpenAI API
   gemini: GeminiProvider,
-  ollama: OllamaProvider
+  ollama: OllamaProvider,
 };
 
 /**
@@ -23,7 +23,7 @@ function detectProvider() {
     return {
       provider: env.INPUT_PROVIDER.toLowerCase(),
       apiKey: env.INPUT_API_KEY,
-      options: {}
+      options: {},
     };
   }
 
@@ -32,7 +32,7 @@ function detectProvider() {
     return {
       provider: 'anthropic',
       apiKey: env.INPUT_ANTHROPIC_API_KEY,
-      options: {}
+      options: {},
     };
   }
 
@@ -40,7 +40,7 @@ function detectProvider() {
     return {
       provider: 'openai',
       apiKey: env.INPUT_OPENAI_API_KEY,
-      options: {}
+      options: {},
     };
   }
 
@@ -48,7 +48,7 @@ function detectProvider() {
     return {
       provider: 'codex',
       apiKey: env.INPUT_CODEX_API_KEY,
-      options: { model: 'codex-mini-latest' }
+      options: { model: 'codex-mini-latest' },
     };
   }
 
@@ -56,7 +56,7 @@ function detectProvider() {
     return {
       provider: 'gemini',
       apiKey: env.INPUT_GEMINI_API_KEY,
-      options: {}
+      options: {},
     };
   }
 
@@ -67,8 +67,8 @@ function detectProvider() {
       apiKey: null,
       options: {
         baseUrl: env.INPUT_OLLAMA_BASE_URL || 'http://localhost:11434',
-        model: env.INPUT_OLLAMA_MODEL || 'llava'
-      }
+        model: env.INPUT_OLLAMA_MODEL || 'llava',
+      },
     };
   }
 
@@ -87,7 +87,7 @@ function createProvider(providerName, apiKey, options = {}) {
 
   if (!ProviderClass) {
     throw new Error(
-      `Unknown provider: ${providerName}. Supported: ${Object.keys(PROVIDERS).join(', ')}`
+      `Unknown provider: ${providerName}. Supported: ${Object.keys(PROVIDERS).join(', ')}`,
     );
   }
 
@@ -105,7 +105,7 @@ function getProvider() {
     throw new Error(
       'No API key provided. Set one of: ' +
       'INPUT_ANTHROPIC_API_KEY, INPUT_OPENAI_API_KEY, INPUT_CODEX_API_KEY, ' +
-      'INPUT_GEMINI_API_KEY, or INPUT_PROVIDER with INPUT_API_KEY'
+      'INPUT_GEMINI_API_KEY, or INPUT_PROVIDER with INPUT_API_KEY',
     );
   }
 
@@ -121,5 +121,5 @@ module.exports = {
   AnthropicProvider,
   OpenAIProvider,
   GeminiProvider,
-  OllamaProvider
+  OllamaProvider,
 };

@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 
 const fs = require('fs').promises;
-const path = require('path');
 const { capturePage } = require('./capture');
 const { getProvider } = require('./providers');
 
@@ -39,7 +38,7 @@ async function main() {
     const captureData = await capturePage(url, {
       viewports,
       timeout,
-      screenshotDir: './screenshots'
+      screenshotDir: './screenshots',
     });
 
     // Step 2: Analyze with LLM
@@ -58,7 +57,7 @@ async function main() {
       focus,
       consoleErrorCount: captureData.consoleErrors.length,
       networkErrorCount: captureData.networkErrors.length,
-      duration: `${((Date.now() - startTime) / 1000).toFixed(1)}s`
+      duration: `${((Date.now() - startTime) / 1000).toFixed(1)}s`,
     };
 
     // Include raw errors in report
@@ -103,9 +102,9 @@ async function main() {
     if (process.env.GITHUB_OUTPUT) {
       const outputs = [
         `report=qa-report.${outputFormat === 'json' ? 'json' : 'md'}`,
-        `screenshots=./screenshots`,
+        'screenshots=./screenshots',
         `bugs_found=${report.bugs?.length || 0}`,
-        `critical_bugs=${report.bugs?.filter(b => ['critical', 'high'].includes(b.severity)).length || 0}`
+        `critical_bugs=${report.bugs?.filter(b => ['critical', 'high'].includes(b.severity)).length || 0}`,
       ];
 
       await fs.appendFile(process.env.GITHUB_OUTPUT, outputs.join('\n') + '\n');
@@ -144,7 +143,7 @@ function generateMarkdownReport(report) {
         critical: '🔴',
         high: '🟠',
         medium: '🟡',
-        low: '🟢'
+        low: '🟢',
       }[bug.severity] || '⚪';
 
       lines.push(`### ${severityEmoji} ${bug.title}`);

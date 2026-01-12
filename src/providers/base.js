@@ -18,6 +18,7 @@ class BaseProvider {
    * @param {Object} options - Analysis options
    * @returns {Promise<Object>} QA report
    */
+  // eslint-disable-next-line no-unused-vars
   async analyze(captureData, options = {}) {
     throw new Error('analyze() must be implemented by subclass');
   }
@@ -36,13 +37,13 @@ class BaseProvider {
 
 ## Console Errors (${captureData.consoleErrors.length})
 ${captureData.consoleErrors.length > 0
-  ? captureData.consoleErrors.map(e => `- ${e}`).join('\n')
-  : 'None detected'}
+    ? captureData.consoleErrors.map(e => `- ${e}`).join('\n')
+    : 'None detected'}
 
 ## Network Errors (${captureData.networkErrors.length})
 ${captureData.networkErrors.length > 0
-  ? captureData.networkErrors.map(e => `- ${e.url}: ${e.status} ${e.statusText}`).join('\n')
-  : 'None detected'}
+    ? captureData.networkErrors.map(e => `- ${e.url}: ${e.status} ${e.statusText}`).join('\n')
+    : 'None detected'}
 
 ## Screenshots Provided
 ${captureData.screenshots.map(s => `- ${s.viewport}: ${s.width}x${s.height}`).join('\n')}
@@ -93,7 +94,7 @@ Respond with ONLY the JSON, no markdown code blocks.`;
         score: null,
         recommendations: [],
         raw_response: response,
-        parse_error: error.message
+        parse_error: error.message,
       };
     }
   }

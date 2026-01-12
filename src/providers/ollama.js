@@ -16,14 +16,15 @@ class OllamaProvider extends BaseProvider {
     // Build the full prompt with screenshot descriptions
     let fullPrompt = '';
     for (const screenshot of captureData.screenshots) {
-      fullPrompt += `[Screenshot: ${screenshot.viewport} - ${screenshot.width}x${screenshot.height}]\n`;
+      const { viewport, width, height } = screenshot;
+      fullPrompt += `[Screenshot: ${viewport} - ${width}x${height}]\n`;
     }
     fullPrompt += '\n' + prompt;
 
     const response = await fetch(`${this.baseUrl}/api/generate`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
       },
       body: JSON.stringify({
         model: this.model,
@@ -31,9 +32,9 @@ class OllamaProvider extends BaseProvider {
         images,
         stream: false,
         options: {
-          temperature: 0.1
-        }
-      })
+          temperature: 0.1,
+        },
+      }),
     });
 
     if (!response.ok) {

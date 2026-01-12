@@ -5,7 +5,7 @@ const path = require('path');
 const VIEWPORTS = {
   desktop: { width: 1920, height: 1080 },
   tablet: { width: 768, height: 1024 },
-  mobile: { width: 375, height: 667 }
+  mobile: { width: 375, height: 667 },
 };
 
 /**
@@ -18,7 +18,7 @@ async function capturePage(url, options = {}) {
   const {
     viewports = ['desktop', 'mobile'],
     timeout = 30000,
-    screenshotDir = './screenshots'
+    screenshotDir = './screenshots',
   } = options;
 
   // Ensure screenshot directory exists
@@ -26,7 +26,7 @@ async function capturePage(url, options = {}) {
 
   const browser = await chromium.launch({
     headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox']
+    args: ['--no-sandbox', '--disable-setuid-sandbox'],
   });
 
   const captureData = {
@@ -37,7 +37,7 @@ async function capturePage(url, options = {}) {
     consoleWarnings: [],
     networkErrors: [],
     networkRequests: [],
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   };
 
   try {
@@ -61,7 +61,7 @@ async function capturePage(url, options = {}) {
       captureData.networkErrors.push({
         url: request.url(),
         method: request.method(),
-        failure: request.failure()?.errorText || 'Unknown error'
+        failure: request.failure()?.errorText || 'Unknown error',
       });
     });
 
@@ -73,7 +73,7 @@ async function capturePage(url, options = {}) {
           url: response.url(),
           status,
           statusText: response.statusText(),
-          method: response.request().method()
+          method: response.request().method(),
         });
       }
     });
@@ -82,7 +82,7 @@ async function capturePage(url, options = {}) {
     console.log(`Navigating to ${url}...`);
     await page.goto(url, {
       waitUntil: 'networkidle',
-      timeout
+      timeout,
     });
 
     // Get page title
@@ -108,7 +108,7 @@ async function capturePage(url, options = {}) {
       const screenshotPath = path.join(screenshotDir, `${viewportName}.png`);
       const buffer = await page.screenshot({
         path: screenshotPath,
-        fullPage: false
+        fullPage: false,
       });
 
       captureData.screenshots.push({
@@ -116,7 +116,7 @@ async function capturePage(url, options = {}) {
         width: viewport.width,
         height: viewport.height,
         path: screenshotPath,
-        buffer
+        buffer,
       });
     }
 

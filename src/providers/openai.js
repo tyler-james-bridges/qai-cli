@@ -20,19 +20,19 @@ class OpenAIProvider extends BaseProvider {
         type: 'image_url',
         image_url: {
           url: `data:image/png;base64,${screenshot.buffer.toString('base64')}`,
-          detail: 'high'
-        }
+          detail: 'high',
+        },
       });
       content.push({
         type: 'text',
-        text: `[Screenshot: ${screenshot.viewport} - ${screenshot.width}x${screenshot.height}]`
+        text: `[Screenshot: ${screenshot.viewport} - ${screenshot.width}x${screenshot.height}]`,
       });
     }
 
     // Add the analysis prompt
     content.push({
       type: 'text',
-      text: prompt
+      text: prompt,
     });
 
     const response = await this.client.chat.completions.create({
@@ -41,9 +41,9 @@ class OpenAIProvider extends BaseProvider {
       messages: [
         {
           role: 'user',
-          content
-        }
-      ]
+          content,
+        },
+      ],
     });
 
     const responseText = response.choices[0]?.message?.content || '';

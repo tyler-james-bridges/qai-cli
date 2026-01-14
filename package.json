@@ -1,10 +1,19 @@
 {
   "name": "ai-qa-engineer",
-  "version": "2.0.0",
-  "description": "AI-powered QA testing for any website. Supports multiple LLM providers: Anthropic, OpenAI, Gemini, Ollama.",
-  "main": "src/index.js",
+  "version": "2.1.0",
+  "description": "AI-powered QA testing. Use as CLI or integrate with your Playwright tests for unified reporting.",
+  "main": "src/analyze.js",
+  "types": "src/types.d.ts",
   "bin": {
     "ai-qa": "src/index.js"
+  },
+  "exports": {
+    ".": {
+      "require": "./src/analyze.js",
+      "import": "./src/analyze.js",
+      "types": "./src/types.d.ts"
+    },
+    "./cli": "./src/index.js"
   },
   "keywords": [
     "qa",
@@ -49,6 +58,18 @@
     "pixelmatch": "^7.1.0",
     "playwright": "^1.48.0",
     "pngjs": "^7.0.0"
+  },
+  "peerDependencies": {
+    "playwright": ">=1.40.0",
+    "@playwright/test": ">=1.40.0"
+  },
+  "peerDependenciesMeta": {
+    "playwright": {
+      "optional": true
+    },
+    "@playwright/test": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "eslint": "^8.56.0",

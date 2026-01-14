@@ -7,15 +7,15 @@ const { getProvider } = require('./providers');
 async function main() {
   const startTime = Date.now();
 
-  // Get configuration from environment
-  const url = process.env.INPUT_URL;
-  const viewportsRaw = process.env.INPUT_VIEWPORTS || 'desktop,mobile';
-  const focus = process.env.INPUT_FOCUS || 'all';
-  const timeout = parseInt(process.env.INPUT_TIMEOUT || '300', 10) * 1000;
-  const outputFormat = process.env.INPUT_OUTPUT_FORMAT || 'markdown';
+  // Get configuration from environment (standard format first, then INPUT_ format for GitHub Actions)
+  const url = process.env.URL || process.env.INPUT_URL;
+  const viewportsRaw = process.env.VIEWPORTS || process.env.INPUT_VIEWPORTS || 'desktop,mobile';
+  const focus = process.env.FOCUS || process.env.INPUT_FOCUS || 'all';
+  const timeout = parseInt(process.env.TIMEOUT || process.env.INPUT_TIMEOUT || '300', 10) * 1000;
+  const outputFormat = process.env.OUTPUT_FORMAT || process.env.INPUT_OUTPUT_FORMAT || 'markdown';
 
   if (!url) {
-    console.error('Error: INPUT_URL is required');
+    console.error('Error: URL is required (set URL or INPUT_URL env var)');
     process.exit(1);
   }
 

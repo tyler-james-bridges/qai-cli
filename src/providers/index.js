@@ -13,61 +13,68 @@ const PROVIDERS = {
 
 /**
  * Auto-detect provider from environment variables
+ * Supports both standard env vars (ANTHROPIC_API_KEY) and GitHub Actions format (INPUT_ANTHROPIC_API_KEY)
  * @returns {{ provider: string, apiKey: string, options: Object } | null}
  */
 function detectProvider() {
   const env = process.env;
 
-  // Check for explicit provider + api_key
-  if (env.INPUT_PROVIDER && env.INPUT_API_KEY) {
+  // Check for explicit provider + api_key (both formats)
+  const provider = env.PROVIDER || env.INPUT_PROVIDER;
+  const apiKey = env.API_KEY || env.INPUT_API_KEY;
+  if (provider && apiKey) {
     return {
-      provider: env.INPUT_PROVIDER.toLowerCase(),
-      apiKey: env.INPUT_API_KEY,
+      provider: provider.toLowerCase(),
+      apiKey: apiKey,
       options: {},
     };
   }
 
-  // Check for provider-specific keys (in order of preference)
-  if (env.INPUT_ANTHROPIC_API_KEY) {
+  // Check for provider-specific keys (standard format first, then INPUT_ format)
+  const anthropicKey = env.ANTHROPIC_API_KEY || env.INPUT_ANTHROPIC_API_KEY;
+  if (anthropicKey) {
     return {
       provider: 'anthropic',
-      apiKey: env.INPUT_ANTHROPIC_API_KEY,
+      apiKey: anthropicKey,
       options: {},
     };
   }
 
-  if (env.INPUT_OPENAI_API_KEY) {
+  const openaiKey = env.OPENAI_API_KEY || env.INPUT_OPENAI_API_KEY;
+  if (openaiKey) {
     return {
       provider: 'openai',
-      apiKey: env.INPUT_OPENAI_API_KEY,
+      apiKey: openaiKey,
       options: {},
     };
   }
 
-  if (env.INPUT_CODEX_API_KEY) {
+  const codexKey = env.CODEX_API_KEY || env.INPUT_CODEX_API_KEY;
+  if (codexKey) {
     return {
       provider: 'codex',
-      apiKey: env.INPUT_CODEX_API_KEY,
+      apiKey: codexKey,
       options: { model: 'codex-mini-latest' },
     };
   }
 
-  if (env.INPUT_GEMINI_API_KEY) {
+  const geminiKey = env.GEMINI_API_KEY || env.INPUT_GEMINI_API_KEY;
+  if (geminiKey) {
     return {
       provider: 'gemini',
-      apiKey: env.INPUT_GEMINI_API_KEY,
+      apiKey: geminiKey,
       options: {},
     };
   }
 
   // Ollama doesn't need an API key
-  if (env.INPUT_PROVIDER === 'ollama') {
+  if (provider === 'ollama') {
     return {
       provider: 'ollama',
       apiKey: null,
       options: {
-        baseUrl: env.INPUT_OLLAMA_BASE_URL || 'http://localhost:11434',
-        model: env.INPUT_OLLAMA_MODEL || 'llava',
+        baseUrl: env.OLLAMA_BASE_URL || env.INPUT_OLLAMA_BASE_URL || 'http://localhost:11434',
+        model: env.OLLAMA_MODEL || env.INPUT_OLLAMA_MODEL || 'llava',
       },
     };
   }
@@ -104,8 +111,8 @@ function getProvider() {
   if (!detected) {
     throw new Error(
       'No API key provided. Set one of: ' +
-      'INPUT_ANTHROPIC_API_KEY, INPUT_OPENAI_API_KEY, INPUT_CODEX_API_KEY, ' +
-      'INPUT_GEMINI_API_KEY, or INPUT_PROVIDER with INPUT_API_KEY',
+      'ANTHROPIC_API_KEY, OPENAI_API_KEY, CODEX_API_KEY, GEMINI_API_KEY, ' +
+      'or PROVIDER with API_KEY',
     );
   }
 

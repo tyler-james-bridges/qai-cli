@@ -1,6 +1,6 @@
 {
   "name": "qai-cli",
-  "version": "3.2.0",
+  "version": "3.3.0",
   "description": "AI-powered QA engineer. Code review, testing, and bug detection from your terminal.",
   "main": "src/analyze.js",
   "types": "src/types.d.ts",

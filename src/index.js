@@ -212,15 +212,17 @@ async function runGenerate() {
 async function main() {
   const startTime = Date.now();
 
-  // Get configuration from environment (standard format first, then INPUT_ format for GitHub Actions)
-  const url = process.env.URL || process.env.INPUT_URL;
+  // Accept URL from: qai scan <url>, or env vars URL / INPUT_URL
+  const scanArgs = process.argv[2] === 'scan' ? process.argv.slice(3) : process.argv.slice(2);
+  const cliUrl = scanArgs.find((a) => a.startsWith('http://') || a.startsWith('https://'));
+  const url = cliUrl || process.env.URL || process.env.INPUT_URL;
   const viewportsRaw = process.env.VIEWPORTS || process.env.INPUT_VIEWPORTS || 'desktop,mobile';
   const focus = process.env.FOCUS || process.env.INPUT_FOCUS || 'all';
   const timeout = parseInt(process.env.TIMEOUT || process.env.INPUT_TIMEOUT || '300', 10) * 1000;
   const outputFormat = process.env.OUTPUT_FORMAT || process.env.INPUT_OUTPUT_FORMAT || 'markdown';
 
   if (!url) {
-    console.error('Error: URL is required (set URL or INPUT_URL env var)');
+    console.error('Error: URL is required. Usage: qai scan <url>');
     process.exit(1);
   }
 

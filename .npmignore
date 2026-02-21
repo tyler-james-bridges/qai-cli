@@ -1,0 +1,12 @@
+.github/
+.claude/
+benchmarks/
+docs/
+examples/
+.husky/
+.eslintrc.json
+.prettierrc.json
+qa-report*.md
+review-report.md
+qa-report-agent.md
+qa-report-kudos.md

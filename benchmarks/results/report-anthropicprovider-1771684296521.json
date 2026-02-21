@@ -1,0 +1,83 @@
+{
+  "provider": "AnthropicProvider",
+  "timestamp": "2026-02-21T14:31:36.518Z",
+  "cases": [
+    {
+      "name": "breaking-api-change",
+      "detected": true,
+      "falsePositives": 4,
+      "issuesFound": 5,
+      "elapsed": 13814
+    },
+    {
+      "name": "hardcoded-secrets",
+      "detected": true,
+      "falsePositives": 2,
+      "issuesFound": 3,
+      "elapsed": 10742
+    },
+    {
+      "name": "memory-leak",
+      "detected": true,
+      "falsePositives": 3,
+      "issuesFound": 4,
+      "elapsed": 11614
+    },
+    {
+      "name": "missing-error-handling",
+      "detected": true,
+      "falsePositives": 4,
+      "issuesFound": 5,
+      "elapsed": 13708
+    },
+    {
+      "name": "null-pointer",
+      "detected": true,
+      "falsePositives": 2,
+      "issuesFound": 3,
+      "elapsed": 11682
+    },
+    {
+      "name": "off-by-one",
+      "detected": true,
+      "falsePositives": 2,
+      "issuesFound": 3,
+      "elapsed": 11731
+    },
+    {
+      "name": "race-condition",
+      "detected": true,
+      "falsePositives": 1,
+      "issuesFound": 2,
+      "elapsed": 9126
+    },
+    {
+      "name": "sql-injection",
+      "detected": true,
+      "falsePositives": 1,
+      "issuesFound": 2,
+      "elapsed": 7861
+    },
+    {
+      "name": "unvalidated-input",
+      "detected": true,
+      "falsePositives": 5,
+      "issuesFound": 6,
+      "elapsed": 17864
+    },
+    {
+      "name": "xss-vulnerability",
+      "detected": true,
+      "falsePositives": 5,
+      "issuesFound": 6,
+      "elapsed": 17311
+    }
+  ],
+  "summary": {
+    "total": 10,
+    "detected": 10,
+    "truePositiveRate": 100,
+    "totalFalsePositives": 29,
+    "avgTimeMs": 12545
+  }
+}

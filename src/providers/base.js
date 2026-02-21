@@ -143,16 +143,16 @@ Respond with ONLY the JSON, no markdown code blocks.`;
     }
 
     // Include dependency info
-    if (Object.keys(context.dependencies).length > 0) {
+    if (Object.keys(context.dependencies || {}).length > 0) {
       contextSection += '\n## Dependencies\n';
-      for (const [file, deps] of Object.entries(context.dependencies)) {
+      for (const [file, deps] of Object.entries(context.dependencies || {})) {
         contextSection += `- \`${file}\` imports: ${deps.map((d) => `\`${d}\``).join(', ')}\n`;
       }
     }
 
-    if (Object.keys(context.dependents).length > 0) {
+    if (Object.keys(context.dependents || {}).length > 0) {
       contextSection += '\n## Dependents (files affected by these changes)\n';
-      for (const [file, deps] of Object.entries(context.dependents)) {
+      for (const [file, deps] of Object.entries(context.dependents || {})) {
         contextSection += `- \`${file}\` is used by: ${deps
           .slice(0, 5)
           .map((d) => `\`${d}\``)
@@ -160,9 +160,9 @@ Respond with ONLY the JSON, no markdown code blocks.`;
       }
     }
 
-    if (Object.keys(context.tests).length > 0) {
+    if (Object.keys(context.tests || {}).length > 0) {
       contextSection += '\n## Related Tests\n';
-      for (const [file, test] of Object.entries(context.tests)) {
+      for (const [file, test] of Object.entries(context.tests || {})) {
         contextSection += `- \`${file}\` has test: \`${test}\`\n`;
       }
     }

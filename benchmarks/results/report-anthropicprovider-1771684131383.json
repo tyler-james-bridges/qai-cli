@@ -1,0 +1,83 @@
+{
+  "provider": "AnthropicProvider",
+  "timestamp": "2026-02-21T14:28:51.383Z",
+  "cases": [
+    {
+      "name": "breaking-api-change",
+      "detected": false,
+      "falsePositives": 0,
+      "elapsed": 1,
+      "error": "Cannot convert undefined or null to object"
+    },
+    {
+      "name": "hardcoded-secrets",
+      "detected": false,
+      "falsePositives": 0,
+      "elapsed": 0,
+      "error": "Cannot convert undefined or null to object"
+    },
+    {
+      "name": "memory-leak",
+      "detected": false,
+      "falsePositives": 0,
+      "elapsed": 0,
+      "error": "Cannot convert undefined or null to object"
+    },
+    {
+      "name": "missing-error-handling",
+      "detected": false,
+      "falsePositives": 0,
+      "elapsed": 0,
+      "error": "Cannot convert undefined or null to object"
+    },
+    {
+      "name": "null-pointer",
+      "detected": false,
+      "falsePositives": 0,
+      "elapsed": 0,
+      "error": "Cannot convert undefined or null to object"
+    },
+    {
+      "name": "off-by-one",
+      "detected": false,
+      "falsePositives": 0,
+      "elapsed": 0,
+      "error": "Cannot convert undefined or null to object"
+    },
+    {
+      "name": "race-condition",
+      "detected": false,
+      "falsePositives": 0,
+      "elapsed": 0,
+      "error": "Cannot convert undefined or null to object"
+    },
+    {
+      "name": "sql-injection",
+      "detected": false,
+      "falsePositives": 0,
+      "elapsed": 0,
+      "error": "Cannot convert undefined or null to object"
+    },
+    {
+      "name": "unvalidated-input",
+      "detected": false,
+      "falsePositives": 0,
+      "elapsed": 0,
+      "error": "Cannot convert undefined or null to object"
+    },
+    {
+      "name": "xss-vulnerability",
+      "detected": false,
+      "falsePositives": 0,
+      "elapsed": 0,
+      "error": "Cannot convert undefined or null to object"
+    }
+  ],
+  "summary": {
+    "total": 10,
+    "detected": 0,
+    "truePositiveRate": 0,
+    "totalFalsePositives": 0,
+    "avgTimeMs": 0
+  }
+}

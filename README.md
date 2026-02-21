@@ -29,7 +29,7 @@ VIEWPORTS=desktop,mobile,tablet qai scan https://mysite.com
 FOCUS=accessibility qai scan https://mysite.com
 ```
 
-### `qai review` — PR Code Review _(Coming Soon)_
+### `qai review` — PR Code Review
 
 Deep code review with full codebase context. Not just the diff — traces through dependencies, callers, and related tests.
 
@@ -41,7 +41,7 @@ qai review 42
 qai review --base main
 ```
 
-### `qai generate` — Test Generation _(Coming Soon)_
+### `qai generate` — Test Generation
 
 Auto-generate Playwright E2E tests from URLs or unit tests from source files.
 
@@ -105,6 +105,19 @@ Works with any major LLM. Set one env var:
 - **Visual regression** — Pixel-level comparison with baselines
 - **Structured reports** — JSON + Markdown output
 - **CI/CD ready** — GitHub Action + exit codes for pipelines
+
+## How It Compares
+
+| Feature                                        | **qai**                 | Paragon   | CodeRabbit  | Cursor BugBot |
+| ---------------------------------------------- | ----------------------- | --------- | ----------- | ------------- |
+| Open source                                    | ✅                      | ❌        | ❌          | ❌            |
+| Visual QA scanning                             | ✅                      | ✅        | ❌          | ❌            |
+| PR code review                                 | ✅                      | ❌        | ✅          | ✅            |
+| Test generation                                | ✅                      | ❌        | ❌          | ❌            |
+| Multi-provider (Claude, GPT-4, Gemini, Ollama) | ✅                      | ❌        | ❌          | ❌            |
+| Local/offline mode (Ollama)                    | ✅                      | ❌        | ❌          | ❌            |
+| CLI + library + GitHub Action                  | ✅                      | SaaS only | GitHub only | GitHub only   |
+| Free                                           | ✅ (bring your own key) | Paid      | Freemium    | Freemium      |
 
 ## License
 

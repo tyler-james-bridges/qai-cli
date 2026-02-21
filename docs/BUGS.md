@@ -35,9 +35,9 @@ A thorough QA test should find:
 ```bash
 # Via GitHub Actions
 Go to Actions → qai → Run workflow
-URL: https://tyler-james-bridges.github.io/qaie/
+URL: https://tyler-james-bridges.github.io/qai-cli/
 
 # Via Visual Regression
 Go to Actions → Visual Regression Testing → Run workflow
-URL: https://tyler-james-bridges.github.io/qaie/
+URL: https://tyler-james-bridges.github.io/qai-cli/
 ```

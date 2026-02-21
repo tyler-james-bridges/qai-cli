@@ -4,7 +4,7 @@ AI-powered QA engineer for your terminal. Scan websites, review PRs, generate te
 
 [![npm version](https://img.shields.io/npm/v/qai-cli)](https://www.npmjs.com/package/qai-cli)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Lint](https://github.com/tyler-james-bridges/qaie/actions/workflows/lint.yml/badge.svg)](https://github.com/tyler-james-bridges/qaie/actions/workflows/lint.yml)
+[![Lint](https://github.com/tyler-james-bridges/qai-cli/actions/workflows/lint.yml/badge.svg)](https://github.com/tyler-james-bridges/qai-cli/actions/workflows/lint.yml)
 
 ## Install
 
@@ -78,7 +78,7 @@ test('homepage has no critical issues', async ({ page }, testInfo) => {
 
 ```yaml
 - name: QAI Scan
-  uses: tyler-james-bridges/qaie@main
+  uses: tyler-james-bridges/qai-cli@main
   with:
     url: ${{ env.PREVIEW_URL }}
     viewports: desktop,mobile

@@ -76,4 +76,4 @@ Paste logs here
 
 ---
 
-**Thank you for reporting this bug!** Your report helps us improve qaie.
+**Thank you for reporting this bug!** Your report helps us improve qai.

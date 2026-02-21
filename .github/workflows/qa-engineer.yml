@@ -249,7 +249,7 @@ jobs:
             body += `\n\n### 📎 Artifacts\n`;
             body += `- [Screenshots](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})\n`;
             body += `- [Full Report](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})\n`;
-            body += '\n---\n*Automated QA testing by [qai](https://github.com/tyler-james-bridges/qaie)*';
+            body += '\n---\n*Automated QA testing by [qai](https://github.com/tyler-james-bridges/qai-cli)*';
 
             // Find existing comment to update (avoid spam)
             const { data: comments } = await github.rest.issues.listComments({

@@ -1,5 +1,5 @@
 /**
- * Smart Page Utilities for qaie
+ * Smart Page Utilities for qai
  * Adapted from dev-browser patterns for reliable page load detection
  */
 

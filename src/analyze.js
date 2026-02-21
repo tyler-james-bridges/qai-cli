@@ -1,11 +1,11 @@
 /**
- * qaie - Library Export
+ * qai - Library Export
  *
  * Use this in your Playwright tests to add AI-powered QA analysis.
  *
  * @example
  * import { test, expect } from '@playwright/test';
- * import { analyzeWithAI } from 'qaie';
+ * import { analyzeWithAI } from 'qai-cli';
  *
  * test('AI QA: homepage', async ({ page }) => {
  *   await page.goto('/');
@@ -234,7 +234,7 @@ async function capturePageData(page, viewports) {
  *
  * @example
  * // In your playwright fixtures
- * import { createAnalyzer } from 'qaie';
+ * import { createAnalyzer } from 'qai-cli';
  *
  * const analyzeWithAI = createAnalyzer({
  *   viewports: ['desktop', 'mobile', 'tablet'],

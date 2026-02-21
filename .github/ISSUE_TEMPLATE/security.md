@@ -38,6 +38,6 @@ Include in your email:
 
 ---
 
-Thank you for helping us keep qaie secure.
+Thank you for helping us keep qai secure.
 
 See [SECURITY.md](../../../SECURITY.md) for full policy.

@@ -88,16 +88,16 @@ jobs:
         env:
           PLAYWRIGHT_BASE_URL: ${{ inputs.preview_url }}
 
-      - name: Checkout qaie
+      - name: Checkout qai-cli
         uses: actions/checkout@v4
         with:
-          repository: tyler-james-bridges/qaie
+          repository: tyler-james-bridges/qai-cli
           ref: main
-          path: _qaie
+          path: _qai
 
-      - name: Setup qaie
+      - name: Setup qai-cli
         run: |
-          cd _qaie
+          cd _qai
           npm ci
           npx playwright install chromium
 
@@ -105,7 +105,7 @@ jobs:
         id: qai
         if: ${{ inputs.preview_url != '' }}
         run: |
-          cd _qaie
+          cd _qai
           node src/index.js
         env:
           URL: ${{ inputs.preview_url }}
@@ -129,7 +129,7 @@ jobs:
         if: always() && inputs.preview_url != ''
         with:
           name: qai-screenshots
-          path: _qaie/screenshots/
+          path: _qai/screenshots/
           retention-days: 14
 
       - name: Post Results to PR
@@ -172,7 +172,7 @@ jobs:
             if (previewUrl) {
               comment += '### 🤖 AI QA Analysis\n\n';
 
-              const aiReportPath = '_qaie/qa-report.md';
+              const aiReportPath = '_qai/qa-report.md';
               if (fs.existsSync(aiReportPath)) {
                 let aiReport = fs.readFileSync(aiReportPath, 'utf8');
                 // Remove the header since we have our own

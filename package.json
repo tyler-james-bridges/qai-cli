@@ -29,18 +29,18 @@
     "code-review",
     "bug-detection",
     "qai",
-    "qaie"
+    "qai-cli"
   ],
   "author": "Tyler James Bridges",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/tyler-james-bridges/qaie"
+    "url": "https://github.com/tyler-james-bridges/qai-cli"
   },
   "bugs": {
-    "url": "https://github.com/tyler-james-bridges/qaie/issues"
+    "url": "https://github.com/tyler-james-bridges/qai-cli/issues"
   },
-  "homepage": "https://github.com/tyler-james-bridges/qaie",
+  "homepage": "https://github.com/tyler-james-bridges/qai-cli",
   "engines": {
     "node": ">=20.0.0",
     "npm": ">=10.0.0"

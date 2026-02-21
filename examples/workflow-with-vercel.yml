@@ -31,7 +31,7 @@ jobs:
   test:
     name: Test
     needs: wait-for-preview
-    uses: tyler-james-bridges/qaie/.github/workflows/playwright-qa.yml@main
+    uses: tyler-james-bridges/qai-cli/.github/workflows/playwright-qa.yml@main
     with:
       preview_url: ${{ needs.wait-for-preview.outputs.url }}
       # working_directory: '.'  # Uncomment if playwright.config is in a subdirectory

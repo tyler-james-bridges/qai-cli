@@ -40,20 +40,13 @@ async function compareImages(baselinePath, currentPath, diffPath, options = {}) 
   const diff = new PNG({ width, height });
 
   // Compare pixels
-  const diffPixels = pixelmatch(
-    baseline.data,
-    current.data,
-    diff.data,
-    width,
-    height,
-    {
-      threshold,
-      includeAA,
-      alpha: 0.1,
-      diffColor: [255, 0, 0],      // Red for differences
-      diffColorAlt: [0, 255, 0],   // Green for anti-aliasing
-    }
-  );
+  const diffPixels = pixelmatch(baseline.data, current.data, diff.data, width, height, {
+    threshold,
+    includeAA,
+    alpha: 0.1,
+    diffColor: [255, 0, 0], // Red for differences
+    diffColorAlt: [0, 255, 0], // Green for anti-aliasing
+  });
 
   // Calculate percentage
   const totalPixels = width * height;
@@ -93,10 +86,10 @@ async function compareDirectories(baselineDir, currentDir, diffDir, options = {}
 
   // Get all PNG files from both directories
   const baselineFiles = fs.existsSync(baselineDir)
-    ? fs.readdirSync(baselineDir).filter(f => f.endsWith('.png'))
+    ? fs.readdirSync(baselineDir).filter((f) => f.endsWith('.png'))
     : [];
   const currentFiles = fs.existsSync(currentDir)
-    ? fs.readdirSync(currentDir).filter(f => f.endsWith('.png'))
+    ? fs.readdirSync(currentDir).filter((f) => f.endsWith('.png'))
     : [];
 
   const allFiles = new Set([...baselineFiles, ...currentFiles]);
@@ -186,10 +179,10 @@ function generateReport(comparison) {
   report += `- **Pass Rate**: ${summary.passRate}%\n\n`;
 
   // Failed comparisons
-  const failed = results.filter(r => r.status === 'failed');
+  const failed = results.filter((r) => r.status === 'failed');
   if (failed.length > 0) {
     report += `### Failed Comparisons ❌\n\n`;
-    failed.forEach(r => {
+    failed.forEach((r) => {
       report += `#### ${r.file}\n`;
       report += `- **Status**: Failed\n`;
       report += `- **Reason**: ${r.message}\n`;
@@ -201,32 +194,32 @@ function generateReport(comparison) {
   }
 
   // Warnings (minor differences)
-  const warnings = results.filter(r => r.status === 'warning');
+  const warnings = results.filter((r) => r.status === 'warning');
   if (warnings.length > 0) {
     report += `### Minor Differences ⚠️\n\n`;
-    warnings.forEach(r => {
+    warnings.forEach((r) => {
       report += `- **${r.file}**: ${r.diffPercent}% difference\n`;
     });
     report += `\n`;
   }
 
   // New screenshots
-  const newScreenshots = results.filter(r => r.status === 'new');
+  const newScreenshots = results.filter((r) => r.status === 'new');
   if (newScreenshots.length > 0) {
     report += `### New Screenshots 🆕\n\n`;
     report += `These screenshots have no baseline yet:\n`;
-    newScreenshots.forEach(r => {
+    newScreenshots.forEach((r) => {
       report += `- ${r.file}\n`;
     });
     report += `\n`;
   }
 
   // Missing screenshots
-  const missingScreenshots = results.filter(r => r.status === 'missing');
+  const missingScreenshots = results.filter((r) => r.status === 'missing');
   if (missingScreenshots.length > 0) {
     report += `### Missing Screenshots ⚠️\n\n`;
     report += `These screenshots existed in baseline but not in current run:\n`;
-    missingScreenshots.forEach(r => {
+    missingScreenshots.forEach((r) => {
       report += `- ${r.file}\n`;
     });
     report += `\n`;
@@ -248,11 +241,11 @@ function updateBaseline(currentDir, baselineDir, options = {}) {
 
   fs.mkdirSync(baselineDir, { recursive: true });
 
-  const currentFiles = fs.readdirSync(currentDir).filter(f => f.endsWith('.png'));
+  const currentFiles = fs.readdirSync(currentDir).filter((f) => f.endsWith('.png'));
   let copied = 0;
   let skipped = 0;
 
-  currentFiles.forEach(file => {
+  currentFiles.forEach((file) => {
     const src = path.join(currentDir, file);
     const dest = path.join(baselineDir, file);
 

@@ -95,7 +95,7 @@ export interface ViewportConfig {
  * @example
  * ```typescript
  * import { test, expect } from '@playwright/test';
- * import { analyzeWithAI } from 'ai-qa-engineer';
+ * import { analyzeWithAI } from 'qaie';
  *
  * test('AI QA: homepage', async ({ page }) => {
  *   await page.goto('/');
@@ -120,7 +120,7 @@ export function analyzeWithAI(page: Page, options?: AnalysisOptions): Promise<An
  * ```
  */
 export function createAnalyzer(
-  defaultOptions?: AnalysisOptions
+  defaultOptions?: AnalysisOptions,
 ): (page: Page, options?: AnalysisOptions) => Promise<AnalysisReport>;
 
 /**

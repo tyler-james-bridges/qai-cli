@@ -48,8 +48,8 @@ class AnthropicProvider extends BaseProvider {
     });
 
     const responseText = response.content
-      .filter(block => block.type === 'text')
-      .map(block => block.text)
+      .filter((block) => block.type === 'text')
+      .map((block) => block.text)
       .join('\n');
 
     return this.parseResponse(responseText);

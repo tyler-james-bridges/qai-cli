@@ -1,5 +1,5 @@
 /**
- * ARIA Snapshot Utility for AI QA Engineer
+ * ARIA Snapshot Utility for qaie
  * Generates AI-friendly DOM snapshots with element references
  * Adapted from dev-browser patterns
  */

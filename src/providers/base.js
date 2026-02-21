@@ -41,19 +41,21 @@ class BaseProvider {
 - Title: ${captureData.pageTitle}
 
 ## Console Errors (${captureData.consoleErrors.length})
-${captureData.consoleErrors.length > 0
-    ? captureData.consoleErrors.map(e => `- ${e}`).join('\n')
-    : 'None detected'}
+${
+  captureData.consoleErrors.length > 0
+    ? captureData.consoleErrors.map((e) => `- ${e}`).join('\n')
+    : 'None detected'
+}
 
 ## Network Errors (${captureData.networkErrors.length})
-${captureData.networkErrors.length > 0
-    ? captureData.networkErrors.map(e => `- ${e.method || 'GET'} ${e.url}: ${e.status || e.failure}`).join('\n')
-    : 'None detected'}
+${
+  captureData.networkErrors.length > 0
+    ? captureData.networkErrors.map((e) => `- ${e.url}: ${e.status} ${e.statusText}`).join('\n')
+    : 'None detected'
+}
 
 ## Screenshots Provided
-${captureData.screenshots.map(s => `- ${s.viewport}: ${s.width}x${s.height}`).join('\n')}
-${ariaSection}
-${domSection}
+${captureData.screenshots.map((s) => `- ${s.viewport}: ${s.width}x${s.height}`).join('\n')}
 
 ## Focus Area: ${focus}
 ${focusGuidance}

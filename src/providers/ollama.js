@@ -11,7 +11,7 @@ class OllamaProvider extends BaseProvider {
     const prompt = this.buildPrompt(captureData, options);
 
     // Ollama expects images as base64 strings in the images array
-    const images = captureData.screenshots.map(s => s.buffer.toString('base64'));
+    const images = captureData.screenshots.map((s) => s.buffer.toString('base64'));
 
     // Build the full prompt with screenshot descriptions
     let fullPrompt = '';

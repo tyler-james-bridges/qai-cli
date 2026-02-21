@@ -2,9 +2,7 @@
   "mcpServers": {
     "playwright": {
       "command": "npx",
-      "args": [
-        "@anthropic-ai/mcp-server-playwright"
-      ],
+      "args": ["@anthropic-ai/mcp-server-playwright"],
       "env": {
         "PLAYWRIGHT_HEADLESS": "true",
         "PLAYWRIGHT_SCREENSHOT_DIR": "./screenshots"

@@ -111,8 +111,8 @@ function getProvider() {
   if (!detected) {
     throw new Error(
       'No API key provided. Set one of: ' +
-      'ANTHROPIC_API_KEY, OPENAI_API_KEY, CODEX_API_KEY, GEMINI_API_KEY, ' +
-      'or PROVIDER with API_KEY',
+        'ANTHROPIC_API_KEY, OPENAI_API_KEY, CODEX_API_KEY, GEMINI_API_KEY, ' +
+        'or PROVIDER with API_KEY',
     );
   }
 

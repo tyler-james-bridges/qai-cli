@@ -1,11 +1,11 @@
 {
-  "name": "ai-qa-engineer",
-  "version": "2.2.0",
-  "description": "AI-powered QA testing. Use as CLI or integrate with your Playwright tests for unified reporting.",
+  "name": "qaie",
+  "version": "3.0.0",
+  "description": "AI-powered QA engineer. Code review, testing, and bug detection from your terminal.",
   "main": "src/analyze.js",
   "types": "src/types.d.ts",
   "bin": {
-    "ai-qa": "src/index.js"
+    "qai": "src/index.js"
   },
   "exports": {
     ".": {
@@ -25,18 +25,22 @@
     "gemini",
     "ai",
     "automation",
-    "github-actions"
+    "github-actions",
+    "code-review",
+    "bug-detection",
+    "qai",
+    "qaie"
   ],
   "author": "Tyler James Bridges",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/tyler-james-bridges/ai-qa-engineer"
+    "url": "https://github.com/tyler-james-bridges/qaie"
   },
   "bugs": {
-    "url": "https://github.com/tyler-james-bridges/ai-qa-engineer/issues"
+    "url": "https://github.com/tyler-james-bridges/qaie/issues"
   },
-  "homepage": "https://github.com/tyler-james-bridges/ai-qa-engineer",
+  "homepage": "https://github.com/tyler-james-bridges/qaie",
   "engines": {
     "node": ">=20.0.0",
     "npm": ">=10.0.0"

@@ -1,11 +1,11 @@
 /**
- * AI QA Engineer - Library Export
+ * qaie - Library Export
  *
  * Use this in your Playwright tests to add AI-powered QA analysis.
  *
  * @example
  * import { test, expect } from '@playwright/test';
- * import { analyzeWithAI } from 'ai-qa-engineer';
+ * import { analyzeWithAI } from 'qaie';
  *
  * test('AI QA: homepage', async ({ page }) => {
  *   await page.goto('/');
@@ -78,8 +78,8 @@ async function analyzeWithAI(page, options = {}) {
     score: analysis.score,
     summary: analysis.summary,
     bugs: analysis.bugs || [],
-    criticalBugs: (analysis.bugs || []).filter(b =>
-      b.severity === 'critical' || b.severity === 'high',
+    criticalBugs: (analysis.bugs || []).filter(
+      (b) => b.severity === 'critical' || b.severity === 'high',
     ),
     recommendations: analysis.recommendations || [],
     consoleErrors: captureData.consoleErrors,
@@ -234,7 +234,7 @@ async function capturePageData(page, viewports) {
  *
  * @example
  * // In your playwright fixtures
- * import { createAnalyzer } from 'ai-qa-engineer';
+ * import { createAnalyzer } from 'qaie';
  *
  * const analyzeWithAI = createAnalyzer({
  *   viewports: ['desktop', 'mobile', 'tablet'],
@@ -293,7 +293,7 @@ async function attachBugReport(testInfo, report) {
     networkErrors: report.networkErrors,
   };
 
-  await testInfo.attach('ai-qa-report', {
+  await testInfo.attach('qai-report', {
     body: JSON.stringify(bugReport, null, 2),
     contentType: 'application/json',
   });

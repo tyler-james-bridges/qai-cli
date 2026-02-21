@@ -15,7 +15,7 @@ on:
 
 jobs:
   test:
-    uses: tyler-james-bridges/ai-qa-engineer/.github/workflows/playwright-qa.yml@main
+    uses: tyler-james-bridges/qaie/.github/workflows/playwright-qa.yml@main
     with:
       # No preview_url - tests will run against localhost (as configured in playwright.config)
       # AI QA will be skipped, but Playwright results will still be posted to PR

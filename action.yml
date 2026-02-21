@@ -1,5 +1,5 @@
-name: 'AI QA Engineer'
-description: 'AI-powered QA testing for any website. Supports multiple LLM providers.'
+name: 'qai'
+description: 'AI-powered QA engineer. Code review, testing, and bug detection. Supports multiple LLM providers.'
 author: 'tyler-james-bridges'
 
 branding:

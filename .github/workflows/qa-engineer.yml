@@ -1,4 +1,4 @@
-name: AI QA Engineer
+name: qai
 
 # This workflow is designed to be copied to your repository.
 # It can run manually OR on pull requests.
@@ -149,7 +149,7 @@ jobs:
       - name: Create Screenshots Directory
         run: mkdir -p screenshots
 
-      - name: Run AI QA Engineer
+      - name: Run qai
         id: qa-run
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
@@ -161,7 +161,7 @@ jobs:
           echo "Focus Area: $TEST_FOCUS"
           echo "::endgroup::"
 
-          echo "::group::Starting AI QA Engineer"
+          echo "::group::Starting qai"
           START_TIME=$(date +%s)
 
           # 5 minute timeout, max 15 turns - be aggressive about speed
@@ -215,7 +215,7 @@ jobs:
       - name: Summary
         if: always()
         run: |
-          echo "## AI QA Engineer Results" >> $GITHUB_STEP_SUMMARY
+          echo "## qai Results" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**URL Tested:** ${{ steps.get-url.outputs.test_url }}" >> $GITHUB_STEP_SUMMARY
           echo "**Focus Area:** ${{ inputs.focus || 'all' }}" >> $GITHUB_STEP_SUMMARY
@@ -235,7 +235,7 @@ jobs:
           script: |
             const fs = require('fs');
 
-            let body = '## 🤖 AI QA Engineer Report\n\n';
+            let body = '## 🤖 qai Report\n\n';
             body += `**URL Tested:** ${{ steps.get-url.outputs.test_url }}\n`;
             body += `**Focus Area:** ${{ inputs.focus || 'all' }}\n\n`;
 
@@ -249,7 +249,7 @@ jobs:
             body += `\n\n### 📎 Artifacts\n`;
             body += `- [Screenshots](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})\n`;
             body += `- [Full Report](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})\n`;
-            body += '\n---\n*Automated QA testing by [AI QA Engineer](https://github.com/tyler-james-bridges/ai-qa-engineer)*';
+            body += '\n---\n*Automated QA testing by [qai](https://github.com/tyler-james-bridges/qaie)*';
 
             // Find existing comment to update (avoid spam)
             const { data: comments } = await github.rest.issues.listComments({
@@ -260,7 +260,7 @@ jobs:
 
             const botComment = comments.find(comment =>
               comment.user.type === 'Bot' &&
-              comment.body.includes('AI QA Engineer Report')
+              comment.body.includes('qai Report')
             );
 
             if (botComment) {

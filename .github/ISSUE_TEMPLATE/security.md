@@ -1,7 +1,7 @@
 ---
 name: Security Vulnerability
 about: Report a security vulnerability (do not use for public security issues)
-title: "[SECURITY] "
+title: '[SECURITY] '
 labels: security
 ---
 
@@ -16,6 +16,7 @@ If you've found a security vulnerability:
 3. **Email** security report to: [security@example.com]
 
 Include in your email:
+
 - Description of the vulnerability
 - Steps to reproduce
 - Potential impact
@@ -37,6 +38,6 @@ Include in your email:
 
 ---
 
-Thank you for helping us keep AI QA Engineer secure.
+Thank you for helping us keep qaie secure.
 
 See [SECURITY.md](../../../SECURITY.md) for full policy.

@@ -1,7 +1,7 @@
 ---
 name: Bug Report
 about: Report a bug to help us improve
-title: "[BUG] "
+title: '[BUG] '
 labels: bug
 assignees: ''
 ---
@@ -76,4 +76,4 @@ Paste logs here
 
 ---
 
-**Thank you for reporting this bug!** Your report helps us improve AI QA Engineer.
+**Thank you for reporting this bug!** Your report helps us improve qaie.

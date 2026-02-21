@@ -167,7 +167,7 @@ jobs:
             report += `- [Screenshots](../actions/runs/${{ github.run_id }})\n`;
             report += `- [Diff Images](../actions/runs/${{ github.run_id }})\n`;
 
-            report += '\n---\n*Visual regression testing by AI QA Engineer*';
+            report += '\n---\n*Visual regression testing by qai*';
 
             await github.rest.issues.createComment({
               owner: context.repo.owner,

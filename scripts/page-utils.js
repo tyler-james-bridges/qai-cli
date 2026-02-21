@@ -1,5 +1,5 @@
 /**
- * Smart Page Utilities for AI QA Engineer
+ * Smart Page Utilities for qaie
  * Adapted from dev-browser patterns for reliable page load detection
  */
 
@@ -46,7 +46,7 @@ function shouldIgnoreRequest(url) {
     if (url.length > 2000) return true;
 
     // Ignore known ad/tracking domains
-    return IGNORED_DOMAINS.some(domain => parsed.hostname.includes(domain));
+    return IGNORED_DOMAINS.some((domain) => parsed.hostname.includes(domain));
   } catch {
     return true; // Invalid URLs are ignored
   }
@@ -63,11 +63,7 @@ function shouldIgnoreRequest(url) {
  * @returns {Promise<{ready: boolean, pendingRequests: string[], loadTime: number}>}
  */
 async function waitForPageReady(page, options = {}) {
-  const {
-    timeout = 30000,
-    networkIdleTime = 500,
-    nonCriticalTimeout = 3000,
-  } = options;
+  const { timeout = 30000, networkIdleTime = 500, nonCriticalTimeout = 3000 } = options;
 
   const startTime = Date.now();
   const pendingRequests = new Map();
@@ -103,7 +99,7 @@ async function waitForPageReady(page, options = {}) {
     // Now wait for network to settle
     while (Date.now() - startTime < timeout) {
       // Filter to only critical pending requests
-      const criticalPending = Array.from(pendingRequests.values()).filter(req => {
+      const criticalPending = Array.from(pendingRequests.values()).filter((req) => {
         const elapsed = Date.now() - req.startTime;
 
         // Non-critical resources get extra grace period
@@ -116,10 +112,10 @@ async function waitForPageReady(page, options = {}) {
 
       if (criticalPending.length === 0) {
         // No critical requests pending, wait for idle time
-        await new Promise(r => setTimeout(r, networkIdleTime));
+        await new Promise((r) => setTimeout(r, networkIdleTime));
 
         // Check again after idle time
-        const stillPending = Array.from(pendingRequests.values()).filter(req => {
+        const stillPending = Array.from(pendingRequests.values()).filter((req) => {
           const elapsed = Date.now() - req.startTime;
           if (NON_CRITICAL_TYPES.includes(req.type)) {
             return elapsed < nonCriticalTimeout;
@@ -132,11 +128,11 @@ async function waitForPageReady(page, options = {}) {
         }
       }
 
-      await new Promise(r => setTimeout(r, 100));
+      await new Promise((r) => setTimeout(r, 100));
     }
 
     const loadTime = Date.now() - startTime;
-    const remaining = Array.from(pendingRequests.values()).map(r => r.url);
+    const remaining = Array.from(pendingRequests.values()).map((r) => r.url);
 
     return {
       ready: remaining.length === 0,
@@ -173,7 +169,7 @@ function createNetworkLogger(page) {
 
   const onResponse = (response) => {
     const request = response.request();
-    const entry = requests.find(r => r.url === request.url() && !r.endTime);
+    const entry = requests.find((r) => r.url === request.url() && !r.endTime);
 
     if (entry) {
       entry.endTime = Date.now();
@@ -196,7 +192,7 @@ function createNetworkLogger(page) {
   };
 
   const onRequestFailed = (request) => {
-    const entry = requests.find(r => r.url === request.url() && !r.endTime);
+    const entry = requests.find((r) => r.url === request.url() && !r.endTime);
     if (entry) {
       entry.endTime = Date.now();
       entry.duration = entry.endTime - entry.startTime;
@@ -219,14 +215,14 @@ function createNetworkLogger(page) {
         totalRequests: requests.length,
         failedRequests: failures.length,
         slowRequests: slowRequests.length,
-        failures: failures.map(f => ({
+        failures: failures.map((f) => ({
           url: f.url,
           method: f.method,
           status: f.status,
           error: f.error,
           duration: f.duration,
         })),
-        slow: slowRequests.map(s => ({
+        slow: slowRequests.map((s) => ({
           url: s.url,
           duration: s.duration,
         })),
@@ -245,7 +241,7 @@ function createNetworkLogger(page) {
 
       if (summary.failures.length > 0) {
         report += '#### Failed Requests\n';
-        summary.failures.forEach(f => {
+        summary.failures.forEach((f) => {
           report += `- \`${f.method} ${f.url}\`\n`;
           report += `  - Status: ${f.status || 'N/A'}\n`;
           if (f.error) report += `  - Error: ${f.error}\n`;
@@ -255,7 +251,7 @@ function createNetworkLogger(page) {
 
       if (summary.slow.length > 0) {
         report += '#### Slow Requests\n';
-        summary.slow.forEach(s => {
+        summary.slow.forEach((s) => {
           report += `- \`${s.url}\` (${s.duration}ms)\n`;
         });
       }

@@ -45,7 +45,7 @@ async function capturePage(url, options = {}) {
     const page = await context.newPage();
 
     // Collect console messages
-    page.on('console', msg => {
+    page.on('console', (msg) => {
       const type = msg.type();
       const text = msg.text();
 
@@ -57,7 +57,7 @@ async function capturePage(url, options = {}) {
     });
 
     // Collect network errors
-    page.on('requestfailed', request => {
+    page.on('requestfailed', (request) => {
       captureData.networkErrors.push({
         url: request.url(),
         method: request.method(),
@@ -66,7 +66,7 @@ async function capturePage(url, options = {}) {
     });
 
     // Collect all network requests for analysis
-    page.on('response', response => {
+    page.on('response', (response) => {
       const status = response.status();
       if (status >= 400) {
         captureData.networkErrors.push({
@@ -123,7 +123,6 @@ async function capturePage(url, options = {}) {
     console.log(`Captured ${captureData.screenshots.length} screenshots`);
     console.log(`Console errors: ${captureData.consoleErrors.length}`);
     console.log(`Network errors: ${captureData.networkErrors.length}`);
-
   } finally {
     await browser.close();
   }

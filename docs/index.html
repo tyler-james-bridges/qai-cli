@@ -1,115 +1,129 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AI QA Engineer - Demo Site</title>
-  <link rel="stylesheet" href="./style.css">
-</head>
-<body>
-  <nav class="navbar">
-    <div class="nav-brand">QA Demo</div>
-    <ul class="nav-links">
-      <li><a href="#features">Features</a></li>
-      <li><a href="#pricing">Pricing</a></li>
-      <li><a href="/broken-link">Resources</a></li><!-- BUG: Broken link -->
-      <li><a href="#contact">Contact</a></li>
-    </ul>
-    <button class="nav-toggle" aria-label="Toggle menu">☰</button>
-  </nav>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>qai - Demo Site</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <nav class="navbar">
+      <div class="nav-brand">QA Demo</div>
+      <ul class="nav-links">
+        <li><a href="#features">Features</a></li>
+        <li><a href="#pricing">Pricing</a></li>
+        <li><a href="/broken-link">Resources</a></li>
+        <!-- BUG: Broken link -->
+        <li><a href="#contact">Contact</a></li>
+      </ul>
+      <button class="nav-toggle" aria-label="Toggle menu">☰</button>
+    </nav>
 
-  <header class="hero">
-    <img src="./hero-image.png" class="hero-image"><!-- BUG: Missing alt text, image doesn't exist -->
-    <h1>Welcome to the Demo Site</h1>
-    <p>This site contains intentional bugs for QA testing purposes.</p>
-    <button class="cta-button" id="cta-btn">Get Started</button>
-  </header>
+    <header class="hero">
+      <img
+        src="./hero-image.png"
+        class="hero-image"
+      /><!-- BUG: Missing alt text, image doesn't exist -->
+      <h1>Welcome to the Demo Site</h1>
+      <p>This site contains intentional bugs for QA testing purposes.</p>
+      <button class="cta-button" id="cta-btn">Get Started</button>
+    </header>
 
-  <main>
-    <section id="features" class="features">
-      <h2>Features</h2>
-      <div class="feature-grid">
-        <div class="feature-card">
-          <h3>Fast Performance</h3>
-          <p>Lightning quick response times for all your needs.</p>
+    <main>
+      <section id="features" class="features">
+        <h2>Features</h2>
+        <div class="feature-grid">
+          <div class="feature-card">
+            <h3>Fast Performance</h3>
+            <p>Lightning quick response times for all your needs.</p>
+          </div>
+          <div class="feature-card">
+            <h3>Secure by Default</h3>
+            <p>Enterprise-grade security built into every layer.</p>
+          </div>
+          <div class="feature-card">
+            <h3>Easy Integration</h3>
+            <p>Connect with your existing tools in minutes.</p>
+          </div>
+          <div class="feature-card no-overflow-hidden">
+            <!-- BUG: This card overflows on mobile -->
+            <h3>24/7 Support Available Around the Clock Every Day</h3>
+            <p>
+              Our dedicated team is here to help you succeed with personalized assistance whenever
+              you need it most.
+            </p>
+          </div>
         </div>
-        <div class="feature-card">
-          <h3>Secure by Default</h3>
-          <p>Enterprise-grade security built into every layer.</p>
-        </div>
-        <div class="feature-card">
-          <h3>Easy Integration</h3>
-          <p>Connect with your existing tools in minutes.</p>
-        </div>
-        <div class="feature-card no-overflow-hidden"><!-- BUG: This card overflows on mobile -->
-          <h3>24/7 Support Available Around the Clock Every Day</h3>
-          <p>Our dedicated team is here to help you succeed with personalized assistance whenever you need it most.</p>
-        </div>
-      </div>
-    </section>
+      </section>
 
-    <section id="pricing" class="pricing">
-      <h2>Pricing</h2>
-      <div class="pricing-grid">
-        <div class="price-card">
-          <h3>Starter</h3>
-          <p class="price">$9/mo</p>
-          <ul>
-            <li>5 projects</li>
-            <li>Basic support</li>
-            <li>1GB storage</li>
-          </ul>
-          <button class="buy-btn">Choose Plan</button>
+      <section id="pricing" class="pricing">
+        <h2>Pricing</h2>
+        <div class="pricing-grid">
+          <div class="price-card">
+            <h3>Starter</h3>
+            <p class="price">$9/mo</p>
+            <ul>
+              <li>5 projects</li>
+              <li>Basic support</li>
+              <li>1GB storage</li>
+            </ul>
+            <button class="buy-btn">Choose Plan</button>
+          </div>
+          <div class="price-card featured">
+            <h3>Pro</h3>
+            <p class="price">$29/mo</p>
+            <ul>
+              <li>Unlimited projects</li>
+              <li>Priority support</li>
+              <li>100GB storage</li>
+            </ul>
+            <button class="buy-btn">Choose Plan</button>
+          </div>
+          <div class="price-card">
+            <h3>Enterprise</h3>
+            <p class="price">Custom</p>
+            <ul>
+              <li>Everything in Pro</li>
+              <li>Dedicated account manager</li>
+              <li>Custom integrations</li>
+            </ul>
+            <button class="buy-btn" disabled>Contact Sales</button
+            ><!-- BUG: Button disabled but no visual indication why -->
+          </div>
         </div>
-        <div class="price-card featured">
-          <h3>Pro</h3>
-          <p class="price">$29/mo</p>
-          <ul>
-            <li>Unlimited projects</li>
-            <li>Priority support</li>
-            <li>100GB storage</li>
-          </ul>
-          <button class="buy-btn">Choose Plan</button>
-        </div>
-        <div class="price-card">
-          <h3>Enterprise</h3>
-          <p class="price">Custom</p>
-          <ul>
-            <li>Everything in Pro</li>
-            <li>Dedicated account manager</li>
-            <li>Custom integrations</li>
-          </ul>
-          <button class="buy-btn" disabled>Contact Sales</button><!-- BUG: Button disabled but no visual indication why -->
-        </div>
-      </div>
-    </section>
+      </section>
 
-    <section id="contact" class="contact">
-      <h2>Contact Us</h2>
-      <form id="contact-form" class="contact-form">
-        <div class="form-group">
-          <label for="name">Name</label>
-          <input type="text" id="name" name="name"><!-- BUG: No required attribute -->
-        </div>
-        <div class="form-group">
-          <label for="email">Email</label>
-          <input type="text" id="email" name="email"><!-- BUG: Should be type="email" -->
-        </div>
-        <div class="form-group">
-          <label for="message">Message</label>
-          <textarea id="message" name="message" rows="4"></textarea>
-        </div>
-        <button type="submit" class="submit-btn" id="submit-btn">Send Message</button>
-        <p id="form-status" class="form-status"></p>
-      </form>
-    </section>
-  </main>
+      <section id="contact" class="contact">
+        <h2>Contact Us</h2>
+        <form id="contact-form" class="contact-form">
+          <div class="form-group">
+            <label for="name">Name</label>
+            <input type="text" id="name" name="name" /><!-- BUG: No required attribute -->
+          </div>
+          <div class="form-group">
+            <label for="email">Email</label>
+            <input type="text" id="email" name="email" /><!-- BUG: Should be type="email" -->
+          </div>
+          <div class="form-group">
+            <label for="message">Message</label>
+            <textarea id="message" name="message" rows="4"></textarea>
+          </div>
+          <button type="submit" class="submit-btn" id="submit-btn">Send Message</button>
+          <p id="form-status" class="form-status"></p>
+        </form>
+      </section>
+    </main>
 
-  <footer class="footer">
-    <p>© 2026 QA Demo Site. This site contains <a href="./BUGS.md">intentional bugs</a> for testing.</p>
-    <p style="color: #666; font-size: 12px;">Part of the <a href="https://github.com/tyler-james-bridges/ai-qa-engineer">AI QA Engineer</a> project.</p>
-  </footer>
+    <footer class="footer">
+      <p>
+        © 2026 QA Demo Site. This site contains <a href="./BUGS.md">intentional bugs</a> for
+        testing.
+      </p>
+      <p style="color: #666; font-size: 12px">
+        Part of the <a href="https://github.com/tyler-james-bridges/qaie">qai</a> project.
+      </p>
+    </footer>
 
-  <script src="./app.js"></script>
-</body>
+    <script src="./app.js"></script>
+  </body>
 </html>

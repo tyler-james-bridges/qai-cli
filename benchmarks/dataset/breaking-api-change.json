@@ -1,0 +1,17 @@
+{
+  "name": "breaking-api-change",
+  "description": "Public API method signature changed without deprecation or major version bump",
+  "diff": "diff --git a/src/api/client.js b/src/api/client.js\nindex ab12cd3..ef45gh6 100644\n--- a/src/api/client.js\n+++ b/src/api/client.js\n@@ -15,14 +15,16 @@ class ApiClient {\n   /**\n    * Fetch a user by ID\n-   * @param {string} userId\n-   * @param {Object} [options]\n-   * @returns {Promise<User>}\n+   * @param {Object} params\n+   * @param {string} params.userId\n+   * @param {string[]} [params.fields]\n+   * @returns {Promise<UserResponse>}\n    */\n-  async getUser(userId, options = {}) {\n-    const res = await this.http.get(`/users/${userId}`, { params: options });\n-    return res.data;\n+  async getUser({ userId, fields = ['id', 'name', 'email'] } = {}) {\n+    const query = fields.length ? `?fields=${fields.join(',')}` : '';\n+    const res = await this.http.get(`/users/${userId}${query}`);\n+    return { user: res.data, meta: { fields } };\n   }\n \n   /**\n    * List all users",
+  "context": {
+    "files": {
+      "src/api/client.js": "const axios = require('axios');\n\nclass ApiClient {\n  constructor(baseURL) {\n    this.http = axios.create({ baseURL });\n  }\n\n  async getUser(userId, options = {}) {\n    const res = await this.http.get(`/users/${userId}`, { params: options });\n    return res.data;\n  }\n}\n\nmodule.exports = { ApiClient };"
+    }
+  },
+  "expectedIssues": [
+    {
+      "severity": "high",
+      "category": "breaking-change",
+      "description": "Breaking API change: getUser() signature changed from (userId, options) to ({ userId, fields }), return type also changed"
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "name": "missing-error-handling",
+  "description": "File operations without error handling or cleanup",
+  "diff": "diff --git a/src/utils/config.js b/src/utils/config.js\nindex 2a3b4c5..6d7e8f9 100644\n--- a/src/utils/config.js\n+++ b/src/utils/config.js\n@@ -5,15 +5,12 @@ const yaml = require('js-yaml');\n \n /**\n  * Load and merge configuration from multiple sources\n- * @param {string[]} configPaths\n+ * @param {string} configPath\n  * @returns {Object}\n  */\n-function loadConfig(configPaths) {\n-  const configs = configPaths.map((p) => {\n-    try {\n-      const raw = fs.readFileSync(p, 'utf8');\n-      return yaml.load(raw);\n-    } catch (err) {\n-      console.warn(`Config not found: ${p}, skipping`);\n-      return {};\n-    }\n-  });\n-  return Object.assign({}, ...configs);\n+function loadConfig(configPath) {\n+  const raw = fs.readFileSync(configPath, 'utf8');\n+  const config = yaml.load(raw);\n+  const overridePath = configPath.replace('.yml', '.local.yml');\n+  const overrideRaw = fs.readFileSync(overridePath, 'utf8');\n+  const override = yaml.load(overrideRaw);\n+  return { ...config, ...override };\n }",
+  "context": {
+    "files": {
+      "src/utils/config.js": "const fs = require('fs');\nconst yaml = require('js-yaml');\n\nfunction loadConfig(configPaths) {\n  const configs = configPaths.map((p) => {\n    try {\n      const raw = fs.readFileSync(p, 'utf8');\n      return yaml.load(raw);\n    } catch (err) {\n      console.warn(`Config not found: ${p}, skipping`);\n      return {};\n    }\n  });\n  return Object.assign({}, ...configs);\n}\n\nmodule.exports = { loadConfig };"
+    }
+  },
+  "expectedIssues": [
+    {
+      "severity": "high",
+      "category": "error-handling",
+      "description": "No error handling for file read operations; will crash if config or override file is missing"
+    }
+  ]
+}

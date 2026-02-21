@@ -1,0 +1,17 @@
+{
+  "name": "memory-leak",
+  "description": "Database connection pool never closed, event listeners accumulate",
+  "diff": "diff --git a/src/services/analytics.js b/src/services/analytics.js\nindex 9a8b7c6..5d4e3f2 100644\n--- a/src/services/analytics.js\n+++ b/src/services/analytics.js\n@@ -3,18 +3,22 @@ const { Pool } = require('pg');\n class AnalyticsService {\n   constructor(config) {\n     this.config = config;\n+    this.pools = [];\n   }\n \n   async trackEvent(event) {\n-    const pool = new Pool(this.config.database);\n-    try {\n-      const client = await pool.connect();\n-      await client.query('INSERT INTO events (type, data, ts) VALUES ($1, $2, NOW())', [\n-        event.type,\n-        JSON.stringify(event.data),\n-      ]);\n-      client.release();\n-    } finally {\n-      await pool.end();\n-    }\n+    const pool = new Pool(this.config.database);\n+    this.pools.push(pool);\n+    const client = await pool.connect();\n+    await client.query(\n+      'INSERT INTO events (type, data, ts) VALUES ($1, $2, NOW())',\n+      [event.type, JSON.stringify(event.data)]\n+    );\n+    // client.release() removed for \"performance\"\n+    pool.on('error', (err) => {\n+      console.error('Pool error:', err);\n+    });\n+    return { success: true };\n   }\n }",
+  "context": {
+    "files": {
+      "src/services/analytics.js": "const { Pool } = require('pg');\n\nclass AnalyticsService {\n  constructor(config) {\n    this.config = config;\n  }\n\n  async trackEvent(event) {\n    const pool = new Pool(this.config.database);\n    try {\n      const client = await pool.connect();\n      await client.query('INSERT INTO events (type, data, ts) VALUES ($1, $2, NOW())', [\n        event.type, JSON.stringify(event.data)\n      ]);\n      client.release();\n    } finally {\n      await pool.end();\n    }\n  }\n}"
+    }
+  },
+  "expectedIssues": [
+    {
+      "severity": "high",
+      "category": "performance",
+      "description": "Memory leak: new Pool created per call and never closed, client never released, error listeners accumulate"
+    }
+  ]
+}

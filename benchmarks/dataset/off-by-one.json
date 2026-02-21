@@ -1,0 +1,17 @@
+{
+  "name": "off-by-one",
+  "description": "Off-by-one error in pagination logic",
+  "diff": "diff --git a/src/utils/paginate.js b/src/utils/paginate.js\nindex 1122334..5566778 100644\n--- a/src/utils/paginate.js\n+++ b/src/utils/paginate.js\n@@ -8,10 +8,11 @@\n  */\n function paginate(items, page, pageSize = 20) {\n   const total = items.length;\n-  const totalPages = Math.ceil(total / pageSize);\n-  const start = (page - 1) * pageSize;\n+  const totalPages = Math.floor(total / pageSize);\n+  const start = page * pageSize;\n   const end = start + pageSize;\n   return {\n     data: items.slice(start, end),\n     page,\n+    pageSize,\n     totalPages,\n     total,\n   };\n }",
+  "context": {
+    "files": {
+      "src/utils/paginate.js": "function paginate(items, page, pageSize = 20) {\n  const total = items.length;\n  const totalPages = Math.ceil(total / pageSize);\n  const start = (page - 1) * pageSize;\n  const end = start + pageSize;\n  return {\n    data: items.slice(start, end),\n    page,\n    totalPages,\n    total,\n  };\n}\n\nmodule.exports = { paginate };"
+    }
+  },
+  "expectedIssues": [
+    {
+      "severity": "medium",
+      "category": "logic",
+      "description": "Off-by-one: page 1 skips first pageSize items (0-indexed page with 1-indexed expectation), and Math.floor loses last partial page"
+    }
+  ]
+}

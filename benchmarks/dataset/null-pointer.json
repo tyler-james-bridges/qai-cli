@@ -1,0 +1,17 @@
+{
+  "name": "null-pointer",
+  "description": "Null pointer access when optional nested object is missing",
+  "diff": "diff --git a/src/services/order.js b/src/services/order.js\nindex a1b2c3d..e4f5678 100644\n--- a/src/services/order.js\n+++ b/src/services/order.js\n@@ -24,9 +24,15 @@ class OrderService {\n    * @returns {Object} formatted order summary\n    */\n   formatOrderSummary(order) {\n-    return {\n-      id: order.id,\n-      total: order.total,\n-    };\n+    const address = order.customer.shippingAddress;\n+    return {\n+      id: order.id,\n+      total: order.total,\n+      customerName: order.customer.name,\n+      shippingCity: address.city,\n+      shippingZip: address.zipCode,\n+      formattedAddress: `${address.street}, ${address.city}, ${address.state} ${address.zipCode}`,\n+    };\n   }\n }",
+  "context": {
+    "files": {
+      "src/services/order.js": "class OrderService {\n  constructor(db) {\n    this.db = db;\n  }\n\n  async getOrder(id) {\n    const order = await this.db.orders.findById(id);\n    return order; // order.customer.shippingAddress may be null\n  }\n\n  formatOrderSummary(order) {\n    return { id: order.id, total: order.total };\n  }\n}"
+    }
+  },
+  "expectedIssues": [
+    {
+      "severity": "high",
+      "category": "bug",
+      "description": "Null/undefined access on order.customer.shippingAddress without null check"
+    }
+  ]
+}

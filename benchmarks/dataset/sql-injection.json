@@ -1,0 +1,17 @@
+{
+  "name": "sql-injection",
+  "description": "SQL injection via string concatenation in user lookup query",
+  "diff": "diff --git a/src/routes/users.js b/src/routes/users.js\nindex 3a1b2c3..4d5e6f7 100644\n--- a/src/routes/users.js\n+++ b/src/routes/users.js\n@@ -12,8 +12,12 @@ const db = require('../db');\n \n router.get('/users/search', async (req, res) => {\n   const { username } = req.query;\n-  const users = await db.query('SELECT id, username, email FROM users WHERE username = $1', [username]);\n-  res.json(users.rows);\n+  if (!username) {\n+    return res.status(400).json({ error: 'username is required' });\n+  }\n+  const query = `SELECT id, username, email FROM users WHERE username = '${username}'`;\n+  const users = await db.query(query);\n+  return res.json(users.rows);\n });\n \n router.get('/users/:id', async (req, res) => {",
+  "context": {
+    "files": {
+      "src/routes/users.js": "const express = require('express');\nconst router = express.Router();\nconst db = require('../db');\n\nrouter.get('/users/search', async (req, res) => {\n  const { username } = req.query;\n  const users = await db.query('SELECT id, username, email FROM users WHERE username = $1', [username]);\n  res.json(users.rows);\n});"
+    }
+  },
+  "expectedIssues": [
+    {
+      "severity": "critical",
+      "category": "security",
+      "description": "SQL injection via string interpolation instead of parameterized query"
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "name": "race-condition",
+  "description": "TOCTOU race condition in balance check and withdrawal",
+  "diff": "diff --git a/src/services/wallet.js b/src/services/wallet.js\nindex 1a2b3c4..5d6e7f8 100644\n--- a/src/services/wallet.js\n+++ b/src/services/wallet.js\n@@ -10,12 +10,18 @@ class WalletService {\n   }\n \n   async withdraw(userId, amount) {\n-    return this.db.transaction(async (trx) => {\n-      const wallet = await trx('wallets').where({ user_id: userId }).forUpdate().first();\n-      if (wallet.balance < amount) throw new Error('Insufficient funds');\n-      await trx('wallets').where({ user_id: userId }).update({ balance: wallet.balance - amount });\n-      return { newBalance: wallet.balance - amount };\n-    });\n+    const wallet = await this.db('wallets').where({ user_id: userId }).first();\n+    if (!wallet) {\n+      throw new Error('Wallet not found');\n+    }\n+    if (wallet.balance < amount) {\n+      throw new Error('Insufficient funds');\n+    }\n+    const newBalance = wallet.balance - amount;\n+    await this.db('wallets')\n+      .where({ user_id: userId })\n+      .update({ balance: newBalance });\n+    return { newBalance };\n   }\n }",
+  "context": {
+    "files": {
+      "src/services/wallet.js": "class WalletService {\n  constructor(db) {\n    this.db = db;\n  }\n\n  async withdraw(userId, amount) {\n    return this.db.transaction(async (trx) => {\n      const wallet = await trx('wallets').where({ user_id: userId }).forUpdate().first();\n      if (wallet.balance < amount) throw new Error('Insufficient funds');\n      await trx('wallets').where({ user_id: userId }).update({ balance: wallet.balance - amount });\n      return { newBalance: wallet.balance - amount };\n    });\n  }\n}"
+    }
+  },
+  "expectedIssues": [
+    {
+      "severity": "critical",
+      "category": "concurrency",
+      "description": "Race condition: balance check and update are not atomic, removed transaction and FOR UPDATE lock"
+    }
+  ]
+}

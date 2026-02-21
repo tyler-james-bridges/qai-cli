@@ -1,0 +1,17 @@
+{
+  "name": "unvalidated-input",
+  "description": "User input used directly in file path and shell command without validation",
+  "diff": "diff --git a/src/routes/export.js b/src/routes/export.js\nindex aabb123..ccdd456 100644\n--- a/src/routes/export.js\n+++ b/src/routes/export.js\n@@ -4,12 +4,18 @@ const { execSync } = require('child_process');\n \n router.post('/export', async (req, res) => {\n-  const { format } = req.body;\n-  const allowed = ['csv', 'json', 'xml'];\n-  if (!allowed.includes(format)) {\n-    return res.status(400).json({ error: 'Invalid format' });\n-  }\n-  const data = await db.reports.getAll();\n-  const file = exportService.generate(data, format);\n-  res.download(file);\n+  const { format, filename, startDate, endDate } = req.body;\n+  const data = await db.reports.getAll();\n+  const outputPath = `/tmp/exports/${filename}.${format}`;\n+  fs.writeFileSync(outputPath, exportService.serialize(data, format));\n+  // Compress for large exports\n+  if (req.body.compress) {\n+    execSync(`gzip ${outputPath}`);\n+    return res.download(`${outputPath}.gz`);\n+  }\n+  res.download(outputPath);\n });",
+  "context": {
+    "files": {
+      "src/routes/export.js": "const express = require('express');\nconst router = express.Router();\nconst db = require('../db');\nconst fs = require('fs');\nconst exportService = require('../services/export');\nconst { execSync } = require('child_process');\n\nrouter.post('/export', async (req, res) => {\n  const { format } = req.body;\n  const allowed = ['csv', 'json', 'xml'];\n  if (!allowed.includes(format)) {\n    return res.status(400).json({ error: 'Invalid format' });\n  }\n  const data = await db.reports.getAll();\n  const file = exportService.generate(data, format);\n  res.download(file);\n});\n\nmodule.exports = router;"
+    }
+  },
+  "expectedIssues": [
+    {
+      "severity": "critical",
+      "category": "security",
+      "description": "Unvalidated input: filename and format used in file path (path traversal) and shell command (command injection), format whitelist removed"
+    }
+  ]
+}

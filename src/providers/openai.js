@@ -49,6 +49,23 @@ class OpenAIProvider extends BaseProvider {
     const responseText = response.choices[0]?.message?.content || '';
     return this.parseResponse(responseText);
   }
+  async reviewCode(diff, context, options = {}) {
+    const prompt = this.buildReviewPrompt(diff, context, options);
+
+    const response = await this.client.chat.completions.create({
+      model: this.model,
+      max_tokens: 8192,
+      messages: [
+        {
+          role: 'user',
+          content: prompt,
+        },
+      ],
+    });
+
+    const responseText = response.choices[0]?.message?.content || '';
+    return this.parseResponse(responseText);
+  }
 }
 
 module.exports = OpenAIProvider;

@@ -37,6 +37,16 @@ class GeminiProvider extends BaseProvider {
 
     return this.parseResponse(responseText);
   }
+  async reviewCode(diff, context, options = {}) {
+    const prompt = this.buildReviewPrompt(diff, context, options);
+    const model = this.genAI.getGenerativeModel({ model: this.model });
+
+    const result = await model.generateContent([{ text: prompt }]);
+    const response = await result.response;
+    const responseText = response.text();
+
+    return this.parseResponse(responseText);
+  }
 }
 
 module.exports = GeminiProvider;

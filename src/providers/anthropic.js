@@ -54,6 +54,28 @@ class AnthropicProvider extends BaseProvider {
 
     return this.parseResponse(responseText);
   }
+
+  async reviewCode(diff, context, options = {}) {
+    const prompt = this.buildReviewPrompt(diff, context, options);
+
+    const response = await this.client.messages.create({
+      model: this.model,
+      max_tokens: 8192,
+      messages: [
+        {
+          role: 'user',
+          content: prompt,
+        },
+      ],
+    });
+
+    const responseText = response.content
+      .filter((block) => block.type === 'text')
+      .map((block) => block.text)
+      .join('\n');
+
+    return this.parseResponse(responseText);
+  }
 }
 
 module.exports = AnthropicProvider;

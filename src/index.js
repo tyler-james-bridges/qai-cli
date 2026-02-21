@@ -3,6 +3,88 @@
 const fs = require('fs').promises;
 const { capturePage } = require('./capture');
 const { getProvider } = require('./providers');
+const { reviewPR, formatReviewMarkdown } = require('./review');
+
+// Route to the right command
+const command = process.argv[2];
+
+if (command === 'review') {
+  runReview().catch((err) => {
+    console.error('\nError:', err.message);
+    process.exit(1);
+  });
+} else {
+  main();
+}
+
+/**
+ * Run PR review command
+ * Usage: qai review [PR_NUMBER] [--base main] [--focus security] [--json]
+ */
+async function runReview() {
+  const args = process.argv.slice(3);
+  const options = {};
+
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === '--base' && args[i + 1]) {
+      options.base = args[++i];
+    } else if (args[i] === '--focus' && args[i + 1]) {
+      options.focus = args[++i];
+    } else if (args[i] === '--json') {
+      options.json = true;
+    } else if (/^\d+$/.test(args[i])) {
+      options.pr = parseInt(args[i], 10);
+    }
+  }
+
+  console.log('='.repeat(60));
+  console.log('qai review');
+  console.log('='.repeat(60));
+  if (options.pr) {
+    console.log(`PR: #${options.pr}`);
+  } else {
+    console.log(`Comparing: HEAD vs ${options.base || 'main'}`);
+  }
+  console.log(`Focus: ${options.focus || 'all'}`);
+  console.log('='.repeat(60));
+
+  const startTime = Date.now();
+  const report = await reviewPR(options);
+  const duration = ((Date.now() - startTime) / 1000).toFixed(1);
+
+  if (options.json) {
+    console.log(JSON.stringify(report, null, 2));
+  } else {
+    const markdown = formatReviewMarkdown(report);
+    await fs.writeFile('review-report.md', markdown);
+    console.log('\nSaved: review-report.md');
+
+    // Print summary
+    console.log('\n' + '='.repeat(60));
+    console.log('Review Summary');
+    console.log('='.repeat(60));
+    console.log(`Score: ${report.score !== null ? report.score + '/100' : 'N/A'}`);
+    console.log(`Issues: ${report.issues?.length || 0}`);
+    if (report.issues?.length > 0) {
+      const critical = report.issues.filter((i) => i.severity === 'critical').length;
+      const high = report.issues.filter((i) => i.severity === 'high').length;
+      const medium = report.issues.filter((i) => i.severity === 'medium').length;
+      const low = report.issues.filter((i) => i.severity === 'low').length;
+      if (critical) console.log(`  Critical: ${critical}`);
+      if (high) console.log(`  High: ${high}`);
+      if (medium) console.log(`  Medium: ${medium}`);
+      if (low) console.log(`  Low: ${low}`);
+    }
+    console.log(`Duration: ${duration}s`);
+    console.log('='.repeat(60));
+  }
+
+  // Exit with error if critical issues found
+  const criticals = report.issues?.filter((i) => i.severity === 'critical').length || 0;
+  if (criticals > 0) {
+    process.exit(1);
+  }
+}
 
 async function main() {
   const startTime = Date.now();

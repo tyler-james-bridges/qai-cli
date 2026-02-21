@@ -19,6 +19,18 @@ class BaseProvider {
   }
 
   /**
+   * Review code changes (PR diff + context)
+   * @param {string} diff - Unified diff
+   * @param {Object} context - Codebase context (files, deps, dependents)
+   * @param {Object} options - Review options
+   * @returns {Promise<Object>} Review report
+   */
+  // eslint-disable-next-line no-unused-vars
+  async reviewCode(diff, context, options = {}) {
+    throw new Error('reviewCode() must be implemented by subclass');
+  }
+
+  /**
    * Build the analysis prompt with focus-specific guidance
    */
   buildPrompt(captureData, options) {
@@ -54,6 +66,8 @@ ${
 
 ## Screenshots Provided
 ${captureData.screenshots.map((s) => `- ${s.viewport}: ${s.width}x${s.height}`).join('\n')}
+
+${ariaSection}${domSection}
 
 ## Focus Area: ${focus}
 ${focusGuidance}
@@ -103,7 +117,111 @@ Respond with ONLY the JSON, no markdown code blocks.`;
       };
     }
   }
+
+  /**
+   * Build the code review prompt
+   */
+  buildReviewPrompt(diff, context, options = {}) {
+    const { focus = 'all' } = options;
+
+    const focusGuidance = REVIEW_FOCUS[focus] || REVIEW_FOCUS.all;
+
+    // Build context section
+    let contextSection = '';
+    if (context.summary) {
+      contextSection += `\n## Change Summary\n${context.summary}\n`;
+    }
+
+    // Include dependency info
+    if (Object.keys(context.dependencies).length > 0) {
+      contextSection += '\n## Dependencies\n';
+      for (const [file, deps] of Object.entries(context.dependencies)) {
+        contextSection += `- \`${file}\` imports: ${deps.map((d) => `\`${d}\``).join(', ')}\n`;
+      }
+    }
+
+    if (Object.keys(context.dependents).length > 0) {
+      contextSection += '\n## Dependents (files affected by these changes)\n';
+      for (const [file, deps] of Object.entries(context.dependents)) {
+        contextSection += `- \`${file}\` is used by: ${deps
+          .slice(0, 5)
+          .map((d) => `\`${d}\``)
+          .join(', ')}${deps.length > 5 ? ` (+${deps.length - 5} more)` : ''}\n`;
+      }
+    }
+
+    if (Object.keys(context.tests).length > 0) {
+      contextSection += '\n## Related Tests\n';
+      for (const [file, test] of Object.entries(context.tests)) {
+        contextSection += `- \`${file}\` has test: \`${test}\`\n`;
+      }
+    }
+
+    // Include relevant file contents (trimmed)
+    let fileContents = '';
+    const contextFiles = Object.entries(context.files || {});
+    if (contextFiles.length > 0) {
+      fileContents = '\n## Full File Contents (for context)\n';
+      for (const [filePath, content] of contextFiles) {
+        fileContents += `\n### \`${filePath}\`\n\`\`\`\n${content}\n\`\`\`\n`;
+      }
+    }
+
+    return `You are a senior software engineer doing a thorough code review. You have deep expertise in finding real bugs, security issues, and breaking changes. You are NOT a linter. Skip style nits.
+
+## Focus: ${focus}
+${focusGuidance}
+
+${contextSection}
+${fileContents}
+
+## Diff to Review
+\`\`\`diff
+${diff}
+\`\`\`
+
+## Instructions
+- Focus on **real bugs**, security holes, breaking changes, edge cases, and logic errors
+- Reference specific files and line numbers
+- Skip style/formatting issues (that's what linters are for)
+- If code looks good, say so. Don't invent problems.
+- Be direct and specific. No filler.
+
+Respond with ONLY this JSON (no code blocks):
+{
+  "summary": "2-3 sentence overview of the changes and their quality",
+  "issues": [
+    {
+      "severity": "critical|high|medium|low",
+      "category": "bug|security|breaking-change|performance|error-handling|logic|race-condition|type-safety",
+      "title": "Short description",
+      "description": "What's wrong and why it matters",
+      "file": "path/to/file.js",
+      "line": 42,
+      "suggestion": "Code or explanation of how to fix"
+    }
+  ],
+  "score": 0-100,
+  "recommendations": ["General suggestions for improvement"]
+}`;
+  }
 }
+
+/**
+ * Review focus areas
+ */
+const REVIEW_FOCUS = {
+  all: 'Review for bugs, security issues, breaking changes, performance problems, error handling gaps, and logic errors.',
+  security:
+    'Focus on security vulnerabilities: injection, auth bypass, data exposure, SSRF, path traversal, ' +
+    'insecure crypto, missing input validation, secrets in code.',
+  performance:
+    'Focus on performance: N+1 queries, unnecessary re-renders, missing memoization, ' +
+    'blocking operations, memory leaks, large bundle impact.',
+  bugs:
+    'Focus on correctness: logic errors, off-by-one, null/undefined access, race conditions, ' +
+    'unhandled promise rejections, incorrect error handling.',
+};
 
 /**
  * Focus-specific prompt guidance

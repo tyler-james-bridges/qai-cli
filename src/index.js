@@ -4,12 +4,18 @@ const fs = require('fs').promises;
 const { capturePage } = require('./capture');
 const { getProvider } = require('./providers');
 const { reviewPR, formatReviewMarkdown } = require('./review');
+const { generateTests } = require('./generate');
 
 // Route to the right command
 const command = process.argv[2];
 
 if (command === 'review') {
   runReview().catch((err) => {
+    console.error('\nError:', err.message);
+    process.exit(1);
+  });
+} else if (command === 'generate') {
+  runGenerate().catch((err) => {
     console.error('\nError:', err.message);
     process.exit(1);
   });
@@ -83,6 +89,65 @@ async function runReview() {
   const criticals = report.issues?.filter((i) => i.severity === 'critical').length || 0;
   if (criticals > 0) {
     process.exit(1);
+  }
+}
+
+/**
+ * Run test generation command
+ * Usage: qai generate <url|file> [--out dir] [--framework playwright|jest|vitest] [--dry-run]
+ */
+async function runGenerate() {
+  const args = process.argv.slice(3);
+  const options = {};
+
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === '--out' && args[i + 1]) {
+      options.outDir = args[++i];
+    } else if (args[i] === '--framework' && args[i + 1]) {
+      options.framework = args[++i];
+    } else if (args[i] === '--pattern' && args[i + 1]) {
+      options.pattern = args[++i];
+    } else if (args[i] === '--dry-run') {
+      options.dryRun = true;
+    } else if (args[i] === '--json') {
+      options.json = true;
+    } else if (!args[i].startsWith('--')) {
+      options.target = args[i];
+    }
+  }
+
+  if (!options.target) {
+    console.error(
+      'Usage: qai generate <url|file> [--out dir] [--framework playwright|jest|vitest] [--dry-run]',
+    );
+    process.exit(1);
+  }
+
+  console.log('='.repeat(60));
+  console.log('qai generate');
+  console.log('='.repeat(60));
+  console.log(`Target: ${options.target}`);
+  console.log(`Framework: ${options.framework || 'auto'}`);
+  console.log(
+    `Output: ${options.dryRun ? 'stdout (dry run)' : options.outDir || './tests/generated'}`,
+  );
+  console.log('='.repeat(60));
+
+  const startTime = Date.now();
+  const result = await generateTests(options);
+  const duration = ((Date.now() - startTime) / 1000).toFixed(1);
+
+  if (options.json) {
+    console.log(JSON.stringify(result, null, 2));
+  } else {
+    console.log('\n' + '='.repeat(60));
+    console.log('Generation Summary');
+    console.log('='.repeat(60));
+    console.log(`Mode: ${result.mode}`);
+    console.log(`Tests generated: ${result.testsGenerated}`);
+    console.log(`Files: ${result.files.join(', ')}`);
+    console.log(`Duration: ${duration}s`);
+    console.log('='.repeat(60));
   }
 }
 

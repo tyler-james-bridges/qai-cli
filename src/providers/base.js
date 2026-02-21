@@ -31,6 +31,16 @@ class BaseProvider {
   }
 
   /**
+   * Generate tests from a prompt
+   * @param {string} prompt - The generation prompt
+   * @returns {Promise<string>} Raw LLM response (JSON array of files)
+   */
+  // eslint-disable-next-line no-unused-vars
+  async generateTests(prompt) {
+    throw new Error('generateTests() must be implemented by subclass');
+  }
+
+  /**
    * Build the analysis prompt with focus-specific guidance
    */
   buildPrompt(captureData, options) {

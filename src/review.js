@@ -251,8 +251,9 @@ function findDependents(filePath, cwd) {
     // Use grep to find files that reference this module
     const result = execSync(
       'grep -rl --include="*.js" --include="*.ts" --include="*.jsx" --include="*.tsx" ' +
+        '--exclude-dir=node_modules --exclude-dir=.next --exclude-dir=.git --exclude-dir=dist ' +
         `"${basename}" . 2>/dev/null | head -20`,
-      { cwd, encoding: 'utf-8' },
+      { cwd, encoding: 'utf-8', timeout: 10000 },
     );
 
     return result

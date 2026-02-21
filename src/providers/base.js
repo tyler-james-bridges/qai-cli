@@ -30,9 +30,7 @@ class BaseProvider {
       ? `\n## ARIA / Accessibility Tree\n\`\`\`\n${captureData.ariaSnapshot}\n\`\`\``
       : '';
 
-    const domSection = captureData.domSummary
-      ? `\n## DOM Summary\n${captureData.domSummary}`
-      : '';
+    const domSection = captureData.domSummary ? `\n## DOM Summary\n${captureData.domSummary}` : '';
 
     return `You are an expert QA engineer analyzing a webpage. Be concise and actionable. Report real issues only — do not invent problems.
 
@@ -111,9 +109,10 @@ Respond with ONLY the JSON, no markdown code blocks.`;
  * Focus-specific prompt guidance
  */
 const FOCUS_PROMPTS = {
-  all: 'Check everything: visual consistency, responsiveness across viewports, '
-    + 'accessibility, console/network errors, interactive element states, '
-    + 'text readability, contrast, layout issues, and broken functionality.',
+  all:
+    'Check everything: visual consistency, responsiveness across viewports, ' +
+    'accessibility, console/network errors, interactive element states, ' +
+    'text readability, contrast, layout issues, and broken functionality.',
 
   accessibility: `Focus on accessibility issues:
 - Missing or incorrect ARIA labels/roles

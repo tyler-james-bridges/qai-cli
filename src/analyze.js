@@ -150,17 +150,17 @@ async function capturePageData(page, viewports) {
   try {
     /* eslint-disable no-undef */
     domSummary = await page.evaluate(() => {
-      const headings = [...document.querySelectorAll('h1,h2,h3,h4,h5,h6')]
-        .map(h => `${h.tagName}: ${h.textContent.trim().slice(0, 80)}`);
+      const headings = [...document.querySelectorAll('h1,h2,h3,h4,h5,h6')].map(
+        (h) => `${h.tagName}: ${h.textContent.trim().slice(0, 80)}`,
+      );
       const links = document.querySelectorAll('a[href]').length;
       const buttons = document.querySelectorAll('button').length;
       const inputs = document.querySelectorAll('input,textarea,select').length;
-      const images = [...document.querySelectorAll('img')]
-        .map(img => ({
-          src: img.src.slice(0, 100),
-          alt: img.alt || '(no alt)',
-        }));
-      const noAlt = images.filter(i => i.alt === '(no alt)').length;
+      const images = [...document.querySelectorAll('img')].map((img) => ({
+        src: img.src.slice(0, 100),
+        alt: img.alt || '(no alt)',
+      }));
+      const noAlt = images.filter((i) => i.alt === '(no alt)').length;
 
       return [
         'Headings: ' + (headings.join(' | ') || 'None'),

@@ -2,14 +2,14 @@
 
 AI-powered QA engineer for your terminal. Scan websites, review PRs, generate tests.
 
-[![npm version](https://img.shields.io/npm/v/qaie)](https://www.npmjs.com/package/qaie)
+[![npm version](https://img.shields.io/npm/v/qai-cli)](https://www.npmjs.com/package/qai-cli)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Lint](https://github.com/tyler-james-bridges/qaie/actions/workflows/lint.yml/badge.svg)](https://github.com/tyler-james-bridges/qaie/actions/workflows/lint.yml)
 
 ## Install
 
 ```bash
-npm install -g qaie
+npm install -g qai-cli
 ```
 
 ## Commands
@@ -59,7 +59,7 @@ Use qai inside your existing Playwright test suite:
 
 ```typescript
 import { test, expect } from '@playwright/test';
-import { analyzeWithAI, attachScreenshots } from 'qaie';
+import { analyzeWithAI, attachScreenshots } from 'qai-cli';
 
 test('homepage has no critical issues', async ({ page }, testInfo) => {
   await page.goto('/');

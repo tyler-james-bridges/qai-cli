@@ -119,6 +119,17 @@ The published action still runs `scan` and needs a provider key.
     ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
 ```
 
+## Releasing
+
+Version is already bumped on `main` (`npm version`). To publish:
+
+```bash
+git tag vX.Y.Z
+git push origin vX.Y.Z
+```
+
+Pushing a `v*` tag runs [publish.yml](.github/workflows/publish.yml): it checks that `package.json` matches the tag (leading `v` stripped), runs `npm test`, then `npm publish --access public`. Requires repo secret `NPM_TOKEN` (npm Automation token with publish rights for `qai-cli`).
+
 ## License
 
 MIT

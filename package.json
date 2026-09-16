@@ -1,7 +1,7 @@
 {
   "name": "qai-cli",
   "version": "3.3.0",
-  "description": "AI-powered QA engineer. Code review, testing, and bug detection from your terminal.",
+  "description": "Evidence-based QA checks for live URLs and agent completion claims. Optional AI for scan, review, and generate.",
   "main": "src/analyze.js",
   "types": "src/types.d.ts",
   "bin": {

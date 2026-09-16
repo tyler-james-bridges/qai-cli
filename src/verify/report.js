@@ -18,6 +18,7 @@ function buildReport(input) {
   const report = {
     schemaVersion: '1',
     policyVersion: '1',
+    command: input.command || 'verify',
     verdict: evaluation.verdict,
     summary: buildSummary(evaluation),
     task: contract.task,
@@ -35,6 +36,7 @@ function buildReport(input) {
     reasonCodes: evaluation.reasonCodes,
     criteria: evaluation.criteria,
   };
+  if (input.targetUrl) report.target.url = input.targetUrl;
   return redact(report);
 }
 
@@ -53,15 +55,20 @@ function buildSummary(evaluation) {
 
 function formatHuman(report) {
   const label = VERDICT_LABELS[report.verdict];
+  const command = report.command || 'verify';
   const lines = [];
-  lines.push(`qai verify — ${label}`);
+  lines.push(`qai ${command} — ${label}`);
   lines.push('');
   lines.push(`Task      ${report.task}`);
-  lines.push(`Claim     UNTRUSTED · ${report.inputs.claim.source}`);
-  lines.push(`           ${formatClaim(report.inputs.claim.content)}`);
-  lines.push(`Claim SHA ${report.inputs.claim.sha256}`);
-  lines.push(`Target    ${report.target.revision}`);
-  lines.push(`Repo      ${path.resolve(report.target.repository)}`);
+  if (command === 'check') {
+    lines.push(`URL       ${report.target.url || report.task}`);
+  } else {
+    lines.push(`Claim     UNTRUSTED · ${report.inputs.claim.source}`);
+    lines.push(`           ${formatClaim(report.inputs.claim.content)}`);
+    lines.push(`Claim SHA ${report.inputs.claim.sha256}`);
+    lines.push(`Target    ${report.target.revision}`);
+    lines.push(`Repo      ${path.resolve(report.target.repository)}`);
+  }
   lines.push(
     `Evidence  ${report.criteria.reduce((sum, item) => sum + item.evidence.length, 0)} checks`,
   );

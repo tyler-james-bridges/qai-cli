@@ -12,11 +12,18 @@ Evidence-based QA checks from your terminal. The default path fetches a URL, rec
 npm install -g qai-cli
 ```
 
+3.4.0 is on `main` (`feat: live qai check without LLM`). npm publish of `qai-cli@3.4.0` is forthcoming.
+
+```bash
+npx qai-cli@3.4.0 check https://canary.0x402.sh/api/health
+```
+
 ## Check a live URL
 
 `qai check` GETs the URL. If you pass a site root, it also GETs `/api/health`. It records status, content-type, and a body snippet, then applies a built-in health contract.
 
 ```bash
+npx qai-cli@3.4.0 check https://canary.0x402.sh/api/health
 qai check https://canary.0x402.sh
 qai check https://canary.0x402.sh/api/health
 qai check https://ack-onchain.dev/api/health

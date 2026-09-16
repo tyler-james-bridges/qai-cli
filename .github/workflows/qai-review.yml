@@ -35,17 +35,37 @@ jobs:
           set +e
           REVIEW=$(qai review ${{ github.event.pull_request.number }} --json 2>&1)
           EXIT_CODE=$?
-          echo "$REVIEW" > review-output.json
+          printf '%s\n' "$REVIEW" > review-output.json
           echo "exit_code=$EXIT_CODE" >> "$GITHUB_OUTPUT"
           set -e
+
+      # Provider/auth/billing failures (credit balance, invalid key, 404 model)
+      # are skipped: the job stays green. Only parsed JSON with severity=critical fails.
+      - name: Classify review result
+        id: classify
+        run: node scripts/classify-qai-review.js review-output.json "${{ steps.review.outputs.exit_code }}"
 
       - name: Post Review Comment
         env:
           GH_TOKEN: ${{ github.token }}
+          OUTCOME: ${{ steps.classify.outputs.outcome }}
+          NOTE: ${{ steps.classify.outputs.note }}
         run: |
           BODY=$(cat review-output.json)
+          if [ "$OUTCOME" = "skipped" ]; then
+            HEADER="## 🤖 QAI Code Review — skipped: provider unavailable"
+            INTRO="Provider/auth/billing failure is not a review finding. lint and qa-test remain the merge gates."
+          elif [ "$OUTCOME" = "fail" ]; then
+            HEADER="## 🤖 QAI Code Review — critical findings"
+            INTRO="$NOTE"
+          else
+            HEADER="## 🤖 QAI Code Review"
+            INTRO="$NOTE"
+          fi
           gh pr comment ${{ github.event.pull_request.number }} \
-            --body "## 🤖 QAI Code Review
+            --body "$HEADER
+
+          $INTRO
 
           <details>
           <summary>Review Details</summary>
@@ -56,8 +76,15 @@ jobs:
 
           </details>"
 
-      - name: Fail on Critical Issues
-        if: steps.review.outputs.exit_code == '1'
+      - name: Skip when provider unavailable
+        if: steps.classify.outputs.outcome == 'skipped'
         run: |
-          echo "::error::QAI review found critical issues"
+          echo "::warning::skipped: provider unavailable"
+          echo "${{ steps.classify.outputs.note }}"
+          echo "lint and qa-test remain the merge gates."
+
+      - name: Fail on Critical Issues
+        if: steps.classify.outputs.outcome == 'fail'
+        run: |
+          echo "::error::${{ steps.classify.outputs.note }}"
           exit 1

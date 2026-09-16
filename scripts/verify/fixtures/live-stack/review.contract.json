@@ -1,0 +1,31 @@
+{
+  "schemaVersion": "1",
+  "task": "Verify Morsel JSON health endpoint",
+  "revision": "REVISION",
+  "criteria": [
+    {
+      "id": "AC-MORSEL",
+      "text": "Morsel /api/health returns JSON health status",
+      "required": true,
+      "checks": [
+        {
+          "type": "git.local"
+        },
+        {
+          "id": "MORSEL-STATUS",
+          "type": "http.probe",
+          "url": "https://morsel.0x402.sh/api/health",
+          "status": 200,
+          "jsonPath": "$.status",
+          "equals": "healthy",
+          "environment": "production",
+          "evidence": "morsel-html.json"
+        },
+        {
+          "type": "claim.coverage",
+          "criterionIds": ["AC-MORSEL"]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,51 @@
+{
+  "schemaVersion": "1",
+  "task": "Verify Tyler live stack health endpoints",
+  "revision": "REVISION",
+  "criteria": [
+    {
+      "id": "AC-HEALTH",
+      "text": "Canary and ACK production health endpoints report the live operational shape",
+      "required": true,
+      "checks": [
+        {
+          "type": "git.local"
+        },
+        {
+          "id": "CANARY-STATUS",
+          "type": "http.probe",
+          "url": "https://canary.0x402.sh/api/health",
+          "status": 200,
+          "jsonPath": "$.status",
+          "equals": "operational_read_only",
+          "environment": "production",
+          "evidence": "canary-health.json"
+        },
+        {
+          "id": "CANARY-NO-WALLET",
+          "type": "http.probe",
+          "url": "https://canary.0x402.sh/api/health",
+          "status": 200,
+          "jsonPath": "$.capabilities.walletAccessEnabled",
+          "equals": false,
+          "environment": "production",
+          "evidence": "canary-health.json"
+        },
+        {
+          "id": "ACK-STATUS",
+          "type": "http.probe",
+          "url": "https://ack-onchain.dev/api/health",
+          "status": 200,
+          "jsonPath": "$.status",
+          "equals": "healthy",
+          "environment": "production",
+          "evidence": "ack-health.json"
+        },
+        {
+          "type": "claim.coverage",
+          "criterionIds": ["AC-HEALTH"]
+        }
+      ]
+    }
+  ]
+}

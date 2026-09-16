@@ -1,0 +1,23 @@
+{
+  "source": "http",
+  "locator": "https://ack-onchain.dev/api/health",
+  "observedAt": "2026-08-03T23:40:00.000Z",
+  "freshUntil": "2026-08-04T23:40:00.000Z",
+  "url": "https://ack-onchain.dev/api/health",
+  "status": 200,
+  "contentType": "application/json",
+  "environment": "production",
+  "accessible": true,
+  "body": {
+    "status": "healthy",
+    "name": "ACK Protocol",
+    "version": "1.1.0",
+    "timestamp": "2026-08-03T23:40:00.000Z",
+    "services": {
+      "web": "up",
+      "mcp": "up",
+      "a2a": "up",
+      "oasf": "up"
+    }
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "source": "http",
+  "locator": "https://morsel.0x402.sh/api/health",
+  "observedAt": "2026-08-03T23:40:00.000Z",
+  "freshUntil": "2026-08-04T23:40:00.000Z",
+  "url": "https://morsel.0x402.sh/api/health",
+  "status": 200,
+  "contentType": "text/html; charset=utf-8",
+  "environment": "production",
+  "accessible": true,
+  "xMatchedPath": "/[creatorSlug]/[recipeSlug]",
+  "body": null
+}

@@ -212,3 +212,51 @@ test('Git collection disables repository-controlled fsmonitor execution', () => 
     fs.rmSync(materialized.dir, { recursive: true, force: true });
   }
 });
+
+test('live-stack pass contract exits 0 through the CLI', () => {
+  const { repo, sha } = createRepo();
+  const materialized = materializeContract(fixture('live-stack', 'pass.contract.json'), sha);
+  try {
+    const result = runCli([
+      'verify',
+      materialized.contractPath,
+      '--claim',
+      path.join(materialized.dir, 'claim.md'),
+      '--repo',
+      repo,
+      '--json',
+    ]);
+    assert.equal(result.status, 0);
+    const report = JSON.parse(result.stdout);
+    assert.equal(report.verdict, 'pass');
+    assert.equal(report.criteria[0].id, 'AC-HEALTH');
+  } finally {
+    cleanupRepo(repo);
+    fs.rmSync(materialized.dir, { recursive: true, force: true });
+  }
+});
+
+test('invalid QAI_VERIFY_NOW exits 3', () => {
+  const { repo, sha } = createRepo();
+  const materialized = materializeContract(fixture('live-stack', 'pass.contract.json'), sha);
+  try {
+    const result = runCli(
+      [
+        'verify',
+        materialized.contractPath,
+        '--claim',
+        path.join(materialized.dir, 'claim.md'),
+        '--repo',
+        repo,
+        '--json',
+      ],
+      { env: { QAI_VERIFY_NOW: 'not-a-date' } },
+    );
+    assert.equal(result.status, 3);
+    assert.equal(result.stdout, '');
+    assert.match(result.stderr, /QAI_VERIFY_NOW is not a valid timestamp/);
+  } finally {
+    cleanupRepo(repo);
+    fs.rmSync(materialized.dir, { recursive: true, force: true });
+  }
+});

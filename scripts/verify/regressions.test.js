@@ -66,6 +66,27 @@ const CASES = [
     'needs_human_review',
     2,
   ],
+  [
+    'live stack passes when canary and ACK health JSON match the operational shape',
+    'live-stack',
+    'pass',
+    'pass',
+    0,
+  ],
+  [
+    'live stack fails when canary health status contradicts operational_read_only',
+    'live-stack',
+    'fail',
+    'fail',
+    1,
+  ],
+  [
+    'live stack needs review when Morsel /api/health is an HTML catch-all',
+    'live-stack',
+    'review',
+    'needs_human_review',
+    2,
+  ],
 ];
 
 for (const [name, family, variant, verdict, exitCode, claimName = 'claim.md'] of CASES) {
@@ -195,23 +216,51 @@ test('malformed and future evidence timestamps cannot pass', async (t) => {
 
 test('recorded evidence is bound to the declared subject', async (t) => {
   const cases = [
-    ['wrong probe URL', 'stale-deploy', 'pass.contract.json', 'probe.json', (item) => {
-      item.url = 'https://other.test/api/feature';
-    }, 'fail'],
-    ['missing model identity', 'bad-model', 'pass.contract.json', 'pass.json', (item) => {
-      delete item.provider;
-      delete item.model;
-      delete item.route;
-    }, 'needs_human_review'],
-    ['wrong scheduler invocation', 'silent-cron', 'pass.contract.json', 'success.json', (item) => {
-      item.dueAt = '1999-01-01T00:00:00.000Z';
-      item.revision = 'b'.repeat(40);
-      item.environment = 'staging';
-    }, 'fail'],
-    ['missing placeholder scan subject', 'placeholder', 'pass.contract.json', 'pass.json', (item) => {
-      delete item.environment;
-      delete item.matchedSentinels;
-    }, 'needs_human_review'],
+    [
+      'wrong probe URL',
+      'stale-deploy',
+      'pass.contract.json',
+      'probe.json',
+      (item) => {
+        item.url = 'https://other.test/api/feature';
+      },
+      'fail',
+    ],
+    [
+      'missing model identity',
+      'bad-model',
+      'pass.contract.json',
+      'pass.json',
+      (item) => {
+        delete item.provider;
+        delete item.model;
+        delete item.route;
+      },
+      'needs_human_review',
+    ],
+    [
+      'wrong scheduler invocation',
+      'silent-cron',
+      'pass.contract.json',
+      'success.json',
+      (item) => {
+        item.dueAt = '1999-01-01T00:00:00.000Z';
+        item.revision = 'b'.repeat(40);
+        item.environment = 'staging';
+      },
+      'fail',
+    ],
+    [
+      'missing placeholder scan subject',
+      'placeholder',
+      'pass.contract.json',
+      'pass.json',
+      (item) => {
+        delete item.environment;
+        delete item.matchedSentinels;
+      },
+      'needs_human_review',
+    ],
   ];
   for (const [name, family, contractName, evidenceName, mutate, verdict] of cases) {
     await t.test(name, async () => {
@@ -237,6 +286,38 @@ test('recorded evidence is bound to the declared subject', async (t) => {
   }
 });
 
+test('live-stack fail and review reasons stay bound to HTTP probe shapes', async () => {
+  const { repo, sha } = createRepo();
+  const failCase = materializeContract(fixture('live-stack', 'fail.contract.json'), sha);
+  const reviewCase = materializeContract(fixture('live-stack', 'review.contract.json'), sha);
+  try {
+    const failed = await verify({
+      contractPath: failCase.contractPath,
+      claimPath: path.join(failCase.dir, 'claim.md'),
+      repoPath: repo,
+      now: NOW,
+    });
+    assert.equal(failed.report.verdict, 'fail');
+    assert.match(
+      failed.report.criteria[0].reason,
+      /probe value at \$\.status does not match expected value/,
+    );
+
+    const reviewed = await verify({
+      contractPath: reviewCase.contractPath,
+      claimPath: path.join(reviewCase.dir, 'claim.md'),
+      repoPath: repo,
+      now: NOW,
+    });
+    assert.equal(reviewed.report.verdict, 'needs_human_review');
+    assert.match(reviewed.report.criteria[0].reason, /No value found at \$\.status/);
+  } finally {
+    cleanupRepo(repo);
+    fs.rmSync(failCase.dir, { recursive: true, force: true });
+    fs.rmSync(reviewCase.dir, { recursive: true, force: true });
+  }
+});
+
 test('a dirty worktree fails exact local revision verification', async () => {
   const { repo, sha } = createRepo({ dirty: true });
   const materialized = materializeContract(fixture('placeholder', 'pass.contract.json'), sha);
@@ -248,7 +329,9 @@ test('a dirty worktree fails exact local revision verification', async () => {
       now: NOW,
     });
     assert.equal(result.report.verdict, 'fail');
-    const gitEvidence = result.report.criteria[0].evidence.find((item) => item.collector === 'git.local');
+    const gitEvidence = result.report.criteria[0].evidence.find(
+      (item) => item.collector === 'git.local',
+    );
     assert.equal(gitEvidence.facts.dirty, true);
   } finally {
     cleanupRepo(repo);

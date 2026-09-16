@@ -1,6 +1,6 @@
 {
   "name": "qai-cli",
-  "version": "3.3.0",
+  "version": "3.4.0",
   "description": "Evidence-based QA checks for live URLs and agent completion claims. Optional AI for scan, review, and generate.",
   "main": "src/analyze.js",
   "types": "src/types.d.ts",
@@ -49,7 +49,7 @@
     "start": "node src/index.js",
     "lint": "eslint scripts/ src/",
     "lint:fix": "eslint scripts/ src/ --fix",
-    "test": "node --test scripts/**/*.test.js scripts/verify/**/*.test.js",
+    "test": "node --test scripts/**/*.test.js scripts/verify/**/*.test.js scripts/classify-qai-review.test.js",
     "test:watch": "node --test --watch scripts/**/*.test.js scripts/verify/**/*.test.js",
     "install:browsers": "playwright install chromium",
     "visual:compare": "node scripts/visual-regression.cjs compare",

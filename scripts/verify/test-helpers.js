@@ -65,7 +65,11 @@ function runCli(args, options = {}) {
       cwd: options.cwd || PROJECT_ROOT,
       encoding: 'utf8',
       input: options.input,
-      env: { ...process.env, ...options.env },
+      env: {
+        ...process.env,
+        QAI_VERIFY_NOW: '2026-08-03T23:45:00.000Z',
+        ...options.env,
+      },
     },
   );
 }

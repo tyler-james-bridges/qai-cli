@@ -83,6 +83,7 @@ Environment:
   OPENAI_API_KEY              Use OpenAI GPT-4
   GEMINI_API_KEY              Use Google Gemini
   OLLAMA_HOST                 Use Ollama (local)
+  QAI_VERIFY_NOW              Pin verifier clock (ISO-8601) when replaying recorded evidence
 
 Examples:
   qai scan https://mysite.com
@@ -123,6 +124,16 @@ async function runVerify() {
     throw new VerificationInputError(
       'Usage: qai verify <contract> --claim <file|-> [--repo <path>] [--json] [--out <path>]',
     );
+  }
+
+  if (process.env.QAI_VERIFY_NOW) {
+    const parsed = new Date(process.env.QAI_VERIFY_NOW);
+    if (Number.isNaN(parsed.getTime())) {
+      throw new VerificationInputError(
+        `QAI_VERIFY_NOW is not a valid timestamp: ${process.env.QAI_VERIFY_NOW}.`,
+      );
+    }
+    options.now = parsed;
   }
 
   if (!options.json) console.error('qai verify: collecting declared read-only evidence...');

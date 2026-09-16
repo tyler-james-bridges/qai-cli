@@ -146,3 +146,9 @@ report; by default the command does not write into the repository.
   workflow, schedule, provider, model, or route identity where applicable.
 - `git.local` requires the target full SHA and a clean worktree. `verify` disables repository
   filesystem-monitor execution while inspecting Git state.
+- MVP HTTP collectors (`http.probe`, `http.revision`) evaluate independently recorded evidence
+  fixtures via `check.evidence`; they do not fetch live URLs. Example pass/fail/review shapes from
+  Tyler's production health endpoints (`canary.0x402.sh/api/health`, `ack-onchain.dev/api/health`,
+  and Morsel's HTML catch-all at `morsel.0x402.sh/api/health`) are in
+  `scripts/verify/fixtures/live-stack/`. Set `QAI_VERIFY_NOW` to an ISO-8601 timestamp when replaying
+  recorded evidence against a pinned clock.

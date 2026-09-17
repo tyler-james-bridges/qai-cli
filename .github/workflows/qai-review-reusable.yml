@@ -4,7 +4,7 @@ on:
   workflow_call:
     inputs:
       provider:
-        description: 'AI provider to use (anthropic or openai)'
+        description: 'AI provider to use (anthropic, openai, or codex)'
         required: false
         type: string
         default: 'anthropic'
@@ -49,6 +49,9 @@ jobs:
         env:
           ANTHROPIC_API_KEY: ${{ inputs.provider == 'anthropic' && secrets.api-key || '' }}
           OPENAI_API_KEY: ${{ inputs.provider == 'openai' && secrets.api-key || '' }}
+          CODEX_API_KEY: ${{ inputs.provider == 'codex' && secrets.api-key || '' }}
+          PROVIDER: ${{ inputs.provider }}
+          API_KEY: ${{ secrets.api-key }}
           GH_TOKEN: ${{ github.token }}
         run: |
           set +e

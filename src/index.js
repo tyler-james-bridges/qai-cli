@@ -10,6 +10,10 @@ if (command === 'check' || isHttpUrl(command)) {
   runCheck().catch(handleVerifyError);
 } else if (command === 'verify') {
   runVerify().catch(handleVerifyError);
+} else if (command === 'risk') {
+  // Loaded only for risk so check/verify never import the TypeSafe SDK.
+  const { runRisk } = require('./risk');
+  runRisk().catch(handleVerifyError);
 } else if (command === 'review' || command === 'generate' || command === 'scan') {
   // Loaded only for optional AI commands so check/verify never import providers.
   const { dispatch } = require('./ai-cli');
@@ -35,12 +39,13 @@ function printVersion() {
 function printHelp() {
   const pkg = require('../package.json');
   console.log(`
-qai v${pkg.version} - evidence-based QA checks. Optional AI for scan, review, and generate.
+qai v${pkg.version} - evidence-based QA checks. Optional AI for scan, review, generate, and risk.
 
 Usage:
   qai check <url>                   Live HTTP health check (no API key)
   qai <url>                         Same as check
   qai verify <contract> [options]   Replay a reviewed verification contract
+  qai risk [pr] [options]           Change-risk score for a local or PR diff
   qai help                          Show this help
   qai --version                     Show version
 
@@ -56,16 +61,24 @@ Verify options:
   --json                      Emit one JSON document to stdout
   --out <path>                Persist report without overwriting files
 
+Risk options:
+  <number>                    PR number (uses gh pr diff)
+  --base <branch>             Base branch for local diff (default: main)
+  --repo <path>               Repository path (default: current directory)
+  --json                      Emit one JSON document to stdout
+  --out <path>                Persist report without overwriting files
+
 Exit codes:
-  0  PASS
+  0  PASS / AUTO-OK / risk skipped (no TYPESAFE_API_KEY)
   1  FAIL
-  2  NEEDS HUMAN REVIEW
+  2  NEEDS HUMAN REVIEW / NEEDS EYES
   3  verifier/input error
 
 Optional AI (requires a provider key):
   qai scan <url>                    Visual QA analysis
   qai review <pr> [options]         PR code review
   qai generate <url|file> [options] Test generation
+  qai risk [pr]                     TypeSafe change-risk (needs TYPESAFE_API_KEY)
 
 Scan options:
   URL=<url>                   Target URL (or set via env)
@@ -90,6 +103,7 @@ Environment (AI commands only):
   OPENAI_API_KEY              Use OpenAI GPT-4
   GEMINI_API_KEY              Use Google Gemini
   OLLAMA_HOST                 Use Ollama (local)
+  TYPESAFE_API_KEY            Required for live qai risk judgments
   QAI_VERIFY_NOW              Pin verifier clock (ISO-8601) when replaying recorded evidence
 
 Examples:
@@ -97,6 +111,8 @@ Examples:
   qai check https://canary.0x402.sh/api/health
   qai check https://ack-onchain.dev/api/health
   qai verify .qai/task.json --claim completion.md
+  qai risk --base main
+  qai risk 42
   qai scan https://mysite.com
   qai review 42
   qai generate src/utils.ts --dry-run

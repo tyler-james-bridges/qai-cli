@@ -50,6 +50,29 @@ qai verify .qai/task.json --claim completion.md --json
 
 Pass `--out <path>` to persist a report. By default neither command writes into the repository.
 
+### Score a diff for merge risk
+
+`qai risk` scores a local `git` diff (or a PR diff via `gh`) with TypeSafe System One. It asks several atomic questions in one `systemOne` call, then confidence-gates to `auto-ok` or `needs-eyes`. `qai check` stays keyless and never loads this path.
+
+```bash
+qai risk --base main
+qai risk 42
+qai risk --base main --json
+```
+
+Live judgments read `TYPESAFE_API_KEY` from the environment. If the key is missing, the command skips TypeSafe, prints `SKIPPED`, and exits `0` so CI without TypeSafe still works. Do not treat a skip as `auto-ok`. An empty diff is `auto-ok` without calling TypeSafe.
+
+Defaults (conservative; change them in `src/risk.js`):
+
+| Signal | `needs-eyes` when |
+| --- | --- |
+| Choice/Score confidence | below `0.60` |
+| `exposes_secrets` noul | `≥ 0.70` yes, or `0.40–0.70` uncertain |
+| blast radius, test gap, or rollback hardness | score `≥ 1.50` on a 0–2 rubric |
+| `merge_posture` | choice is `needs_eyes` |
+
+Exit `0` for `auto-ok` or skip, `2` for `needs-eyes`.
+
 Recorded pass, fail, and review shapes from canary, ACK, and Morsel live in `scripts/verify/fixtures/live-stack/`. Set `QAI_VERIFY_NOW` to an ISO-8601 timestamp when you replay recorded evidence against a pinned clock.
 
 ### Verdicts
@@ -63,7 +86,7 @@ Recorded pass, fail, and review shapes from canary, ACK, and Morsel live in `scr
 
 ## Optional AI commands
 
-`scan`, `review`, and `generate` stay available and need a provider key. `check` and `verify` never import those providers.
+`scan`, `review`, and `generate` stay available and need a provider key. `qai risk` needs `TYPESAFE_API_KEY`. `check` and `verify` never import those providers or the TypeSafe SDK.
 
 ```bash
 qai scan https://mysite.com
@@ -75,6 +98,8 @@ qai review --base main
 
 qai generate https://mysite.com
 qai generate src/billing.ts
+
+qai risk --base main
 ```
 
 Set one env var for AI commands:

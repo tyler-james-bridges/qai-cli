@@ -140,8 +140,14 @@ function truncateDiff(text, maxChars = MAX_DIFF_CHARS) {
     return { text, truncated: false, originalChars };
   }
   const notice = `\n\n[truncated ${originalChars - maxChars} of ${originalChars} chars]\n`;
-  const budget = Math.max(0, maxChars - notice.length);
-  return { text: text.slice(0, budget) + notice, truncated: true, originalChars };
+  if (notice.length >= maxChars) {
+    return { text: notice.slice(0, maxChars), truncated: true, originalChars };
+  }
+  return {
+    text: text.slice(0, maxChars - notice.length) + notice,
+    truncated: true,
+    originalChars,
+  };
 }
 
 function parseChangedFiles(diff) {
@@ -430,6 +436,11 @@ function formatNumber(value, digits) {
   return typeof value === 'number' && Number.isFinite(value) ? value.toFixed(digits) : 'n/a';
 }
 
+function formatScoreLine(id, answer) {
+  const padded = id.padEnd(18);
+  return `  ${padded} ${formatNumber(answer.score, 2)}  conf ${formatNumber(answer.confidence, 2)}`;
+}
+
 function formatHuman(report) {
   const lines = [];
   lines.push(`qai risk — ${GATE_LABELS[report.gate]}`);
@@ -441,31 +452,21 @@ function formatHuman(report) {
   } else {
     lines.push(`Source    HEAD vs ${report.source.base}`);
   }
-  lines.push(
-    `Files     ${report.stats.filesChanged} changed  +${report.stats.additions} / -${report.stats.deletions}`,
-  );
-  lines.push(
-    `Diff      ${report.stats.diffChars} chars${report.truncated ? ' (truncated)' : ''}`,
-  );
+  const { filesChanged, additions, deletions, diffChars } = report.stats;
+  lines.push(`Files     ${filesChanged} changed  +${additions} / -${deletions}`);
+  lines.push(`Diff      ${diffChars} chars${report.truncated ? ' (truncated)' : ''}`);
 
   if (report.judgments) {
     const { blast_radius, test_gap, exposes_secrets, rollback_hardness, merge_posture } =
       report.judgments;
     lines.push('');
     lines.push('JUDGMENTS');
-    lines.push(
-      `  blast_radius        ${formatNumber(blast_radius.score, 2)}  conf ${formatNumber(blast_radius.confidence, 2)}`,
-    );
-    lines.push(
-      `  test_gap            ${formatNumber(test_gap.score, 2)}  conf ${formatNumber(test_gap.confidence, 2)}`,
-    );
-    lines.push(`  exposes_secrets     ${formatNumber(exposes_secrets.noul, 3)}`);
-    lines.push(
-      `  rollback_hardness   ${formatNumber(rollback_hardness.score, 2)}  conf ${formatNumber(rollback_hardness.confidence, 2)}`,
-    );
-    lines.push(
-      `  merge_posture       ${merge_posture.choice}  conf ${formatNumber(merge_posture.confidence, 2)}`,
-    );
+    lines.push(formatScoreLine('blast_radius', blast_radius));
+    lines.push(formatScoreLine('test_gap', test_gap));
+    lines.push(`  ${'exposes_secrets'.padEnd(18)} ${formatNumber(exposes_secrets.noul, 3)}`);
+    lines.push(formatScoreLine('rollback_hardness', rollback_hardness));
+    const postureConf = formatNumber(merge_posture.confidence, 2);
+    lines.push(`  ${'merge_posture'.padEnd(18)} ${merge_posture.choice}  conf ${postureConf}`);
   }
 
   lines.push('');

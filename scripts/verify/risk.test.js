@@ -35,7 +35,9 @@ function answers(overrides = {}) {
 }
 
 function commitFile(repo, filePath, contents, message) {
-  fs.writeFileSync(path.join(repo, filePath), contents);
+  const fullPath = path.join(repo, filePath);
+  fs.mkdirSync(path.dirname(fullPath), { recursive: true });
+  fs.writeFileSync(fullPath, contents);
   execFileSync('git', ['add', filePath], { cwd: repo });
   execFileSync('git', ['-c', 'commit.gpgsign=false', 'commit', '-q', '-m', message], {
     cwd: repo,
@@ -151,10 +153,10 @@ test('truncateDiff keeps small text and caps large text', () => {
   assert.equal(small.truncated, false);
   assert.equal(small.text, 'hello');
 
-  const large = truncateDiff('x'.repeat(50), 20);
+  const large = truncateDiff('x'.repeat(200), 80);
   assert.equal(large.truncated, true);
-  assert.equal(large.originalChars, 50);
-  assert.ok(large.text.length <= 20);
+  assert.equal(large.originalChars, 200);
+  assert.ok(large.text.length <= 80);
   assert.match(large.text, /truncated/);
 });
 

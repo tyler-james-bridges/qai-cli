@@ -134,7 +134,8 @@ Structure your report as:
 
 ### [BUG-001] [Title]
 
-- **Severity**: Critical/High/Medium/Low
+**Severity:** [critical|high|medium|low]
+Write exactly one of those words: critical, high, medium, or low.
 - **Category**: Visual / Functional / Network / Accessibility / Performance
 - **Viewport**: [size]
 - **Steps to Reproduce**:

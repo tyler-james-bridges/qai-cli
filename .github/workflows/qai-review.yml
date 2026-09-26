@@ -28,8 +28,11 @@ jobs:
       - name: Run QAI Review
         id: review
         env:
+          QAI_PROVIDER: ${{ vars.QAI_PROVIDER }}
+          PROVIDER: ${{ vars.QAI_PROVIDER }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GH_TOKEN: ${{ github.token }}
         run: |
           set +e

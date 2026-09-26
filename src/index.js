@@ -102,7 +102,9 @@ Environment (AI commands only):
   ANTHROPIC_API_KEY           Use Anthropic Claude
   OPENAI_API_KEY              Use OpenAI GPT-4
   GEMINI_API_KEY              Use Google Gemini
-  OLLAMA_HOST                 Use Ollama (local)
+  OLLAMA_BASE_URL             Ollama base URL (default http://localhost:11434)
+  PROVIDER, QAI_PROVIDER      Provider to try first
+  API_KEY                     Key for PROVIDER when no provider-specific key is set
   TYPESAFE_API_KEY            Required for live qai risk judgments
   QAI_VERIFY_NOW              Pin verifier clock (ISO-8601) when replaying recorded evidence
 

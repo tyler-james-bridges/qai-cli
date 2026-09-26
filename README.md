@@ -143,6 +143,8 @@ If the chosen or auto-detected provider fails with a billing, auth, or model-not
 
 In CI, set the repository variable `QAI_PROVIDER` to the same name. No workflow edit. The QAI Code Review and qa-test jobs read that variable and pass `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, and `GEMINI_API_KEY` when those secrets exist. Leave the variable empty to keep auto-detect. qa-test runs Claude Code when the provider is `anthropic` or unset, and `qai scan` for `openai`, `gemini`, `codex`, or `ollama`. If Claude Code fails with a billing, auth, or model error and another provider key is set, qa-test runs `qai scan` so that key is tried. A qa-test run that still produces no report is `skipped: provider unavailable`. Critical and high findings in a real report still fail the check.
 
+[QAI Code Review](.github/workflows/qai-review.yml) picks its provider from the repository variable `QAI_PROVIDER` (currently `openai`) and passes that value as both `PROVIDER` and `QAI_PROVIDER`. The job receives the `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, and `GEMINI_API_KEY` secrets. It installs `qai-cli` from npm (`npm install -g qai-cli`), so the provider fallback from #41 applies in CI only once a newer version is published.
+
 ### Playwright helper
 
 ```typescript

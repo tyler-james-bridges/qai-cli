@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Home</title>
+  </head>
+  <body>
+    <a href="/docs">Docs</a>
+    <h1 id="view">Home</h1>
+    <script>
+      document.querySelector('a').addEventListener('click', (event) => {
+        event.preventDefault();
+        history.pushState({}, '', '/docs');
+        window.setTimeout(() => {
+          document.querySelector('#view').textContent = 'Docs intro';
+          document.title = 'Docs intro';
+        }, 1500);
+      });
+    </script>
+  </body>
+</html>

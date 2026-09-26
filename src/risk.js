@@ -2,10 +2,10 @@ const { execFileSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const { VerificationInputError, VerificationRuntimeError } = require('./verify/errors');
+const { MODEL, createClient, readApiKey } = require('./typesafe');
 
 const DEFAULT_BASE = 'main';
 const MAX_DIFF_CHARS = 80000;
-const MODEL = 'jev-latest';
 
 const EXIT_CODES = {
   'auto-ok': 0,
@@ -172,10 +172,6 @@ function parseChangedFiles(diff) {
   return files;
 }
 
-function readApiKey() {
-  return String(process.env.TYPESAFE_API_KEY || '').trim();
-}
-
 function collectDiff({ pr, base, repoPath }) {
   let raw;
   try {
@@ -284,26 +280,6 @@ function pickScore(answer) {
     confidence: answer.confidence,
     legend: answer.legend,
   };
-}
-
-function loadTypeSafeSdk() {
-  try {
-    // Lazy-load so `qai check` / `qai verify` never import the TypeSafe SDK.
-    return require('@typesafe-ai/sdk');
-  } catch (error) {
-    if (error.code === 'MODULE_NOT_FOUND') {
-      throw new VerificationRuntimeError(
-        'qai risk requires @typesafe-ai/sdk. Install it with npm install @typesafe-ai/sdk.',
-        error,
-      );
-    }
-    throw error;
-  }
-}
-
-function createClient() {
-  const { TypeSafeClient } = loadTypeSafeSdk();
-  return new TypeSafeClient({ defaultModel: MODEL });
 }
 
 function emptyDiffReport(state) {

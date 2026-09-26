@@ -73,6 +73,20 @@ Defaults (conservative; change them in `src/risk.js`):
 
 Exit `0` for `auto-ok` or skip, `2` for `needs-eyes`.
 
+### Drive a page toward a goal
+
+`qai flow` opens a URL in Playwright and asks Jev for one next action. The choice set is closed: named controls from that step's accessibility snapshot, plus `done`. A fill is offered only when a `--data` key matches the field's accessible name (`board` matches "Board name", not "List name"). Jev does not invent text. Submitting a form that still contains a textbox with no matching key fails the run and names that field, so an empty submit cannot end as `done`. After each action the command waits, up to a few seconds, until that snapshot changes and the network is idle, so a client-side route is not judged from the previous page.
+
+```bash
+qai flow http://127.0.0.1:3000 "Create a board, list, and card" \
+  --data board=Trip --data list=Todo --data card=Pack
+qai flow https://example.com "Open the pricing page" --max-steps 8 --json
+```
+
+Each step records the chosen action, Jev's latency, and token or cost fields when the response includes them. Jev currently returns `input_tokens` and `output_tokens` only, with no cost field. The command prints a summary with total wall time. `--json` prints that report as one JSON document.
+
+Exit `0` when Jev chooses `done`. Exit `1` when a step fails or `--max-steps` is hit (default 15). If `TYPESAFE_API_KEY` is missing, the command prints `SKIPPED` and exits `0` without opening a browser.
+
 Recorded pass, fail, and review shapes from canary, ACK, and Morsel live in `scripts/verify/fixtures/live-stack/`. Set `QAI_VERIFY_NOW` to an ISO-8601 timestamp when you replay recorded evidence against a pinned clock.
 
 ### Verdicts
@@ -86,7 +100,7 @@ Recorded pass, fail, and review shapes from canary, ACK, and Morsel live in `scr
 
 ## Optional AI commands
 
-`scan`, `review`, and `generate` stay available and need a provider key. `qai risk` needs `TYPESAFE_API_KEY`. `check` and `verify` never import those providers or the TypeSafe SDK.
+`scan`, `review`, and `generate` stay available and need a provider key. `qai risk` and `qai flow` need `TYPESAFE_API_KEY`. `check` and `verify` never import those providers, Playwright, or the TypeSafe SDK.
 
 ```bash
 qai scan https://mysite.com
@@ -100,6 +114,9 @@ qai generate https://mysite.com
 qai generate src/billing.ts
 
 qai risk --base main
+
+qai flow http://127.0.0.1:3000 "Create a board, list, and card" \
+  --data board=Trip --data list=Todo --data card=Pack
 ```
 
 Set one env var for AI commands:

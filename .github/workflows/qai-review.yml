@@ -82,17 +82,24 @@ jobs:
 
           </details>"
 
-      # qai risk exit 2 (needs-eyes) and a missing TypeSafe key must not fail the job.
+      # Script is the copy inside the qai package installed from GitHub main.
+      # Do not run the checkout copy: this step has the write token and TYPESAFE_API_KEY.
       - name: Post change-risk fallback
         if: steps.classify.outputs.outcome == 'skipped'
         env:
           GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           SKIP_REASON: ${{ steps.classify.outputs.note }}
           REVIEW_LOG: review-output.json
           TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
         run: |
-          node scripts/qai-review-fallback.js || echo "::warning::change-risk fallback did not complete"
+          script="$(npm root -g)/qai-cli/scripts/qai-review-fallback.js"
+          if [ ! -f "$script" ]; then
+            echo "::warning::change-risk fallback script is not in the qai install from main"
+            exit 0
+          fi
+          node "$script" || echo "::warning::change-risk fallback did not complete"
 
       - name: Skip when provider unavailable
         if: steps.classify.outputs.outcome == 'skipped'

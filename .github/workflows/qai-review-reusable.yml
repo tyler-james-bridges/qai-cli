@@ -154,21 +154,21 @@ jobs:
 
           </details>"
 
-      # Caller checkouts do not contain this repo's scripts/. Fetch the copy
-      # that shipped with this workflow file. A failed fallback does not fail the job.
+      # Same install as qai above (GitHub main). Never the caller checkout.
       - name: Post change-risk fallback
         if: steps.classify.outputs.outcome == 'skipped'
         env:
           GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           SKIP_REASON: ${{ steps.classify.outputs.note }}
           REVIEW_LOG: review-output.json
           TYPESAFE_API_KEY: ${{ secrets.typesafe-api-key }}
         run: |
-          script="scripts/qai-review-fallback.js"
+          script="$(npm root -g)/qai-cli/scripts/qai-review-fallback.js"
           if [ ! -f "$script" ]; then
-            script="/tmp/qai-review-fallback.js"
-            curl -fsSL "https://raw.githubusercontent.com/${{ job.workflow_repository }}/${{ job.workflow_sha }}/scripts/qai-review-fallback.js" -o "$script" || true
+            echo "::warning::change-risk fallback script is not in the qai install from main"
+            exit 0
           fi
           node "$script" || echo "::warning::change-risk fallback did not complete"
 

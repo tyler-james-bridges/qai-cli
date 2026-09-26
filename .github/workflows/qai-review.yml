@@ -22,8 +22,12 @@ jobs:
         with:
           node-version: 20
 
+      # Install from main, not the PR head and not the npm package.
+      # A pull request must not be able to change the reviewer that runs with secrets.
       - name: Install qai-cli
-        run: npm install -g qai-cli
+        run: |
+          npm install -g github:tyler-james-bridges/qai-cli#main
+          qai --version
 
       - name: Run QAI Review
         id: review

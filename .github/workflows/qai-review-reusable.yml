@@ -14,7 +14,7 @@ on:
         type: string
         default: '20'
       qai-version:
-        description: 'qai-cli version (npm version specifier)'
+        description: 'Unused. Review always installs qai-cli from GitHub main.'
         required: false
         type: string
         default: 'latest'
@@ -41,8 +41,12 @@ jobs:
         with:
           node-version: ${{ inputs.node-version }}
 
+      # Install from main, not the PR head and not the npm package.
+      # qai-version is still accepted so existing callers keep validating.
       - name: Install qai-cli
-        run: npm install -g qai-cli@${{ inputs.qai-version }}
+        run: |
+          npm install -g github:tyler-james-bridges/qai-cli#main
+          qai --version
 
       - name: Run QAI Review
         id: review

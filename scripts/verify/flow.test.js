@@ -1,6 +1,8 @@
 const assert = require('node:assert/strict');
 const http = require('http');
 const fs = require('fs');
+const os = require('os');
+const path = require('path');
 const test = require('node:test');
 const {
   actionsFromSnapshot,
@@ -486,6 +488,58 @@ test('max steps exits non-zero when Jev never finishes', { timeout: 60000 }, asy
   assert.match(result.report.summary, /Stopped after 2 steps/);
   assert.match(formatHuman(result.report), /MAX STEPS/);
   assert.equal(result.report.model, null);
+});
+
+test('flow CLI does not load LLM providers or provider fallback', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'qai-flow-load-'));
+  const preload = path.join(dir, 'preload.js');
+  const hitsPath = path.join(dir, 'hits.json');
+  fs.writeFileSync(
+    preload,
+    [
+      "const Module = require('module');",
+      'const hits = [];',
+      'const orig = Module._load;',
+      'Module._load = function (request, parent, isMain) {',
+      '  if (',
+      "    request === 'openai' ||",
+      "    request.includes('@anthropic-ai') ||",
+      "    request.includes('@google/generative-ai') ||",
+      "    request.includes('ai-cli') ||",
+      '    /(^|\\/)providers(\\/|$)/.test(request)',
+      '  ) {',
+      '    hits.push(request);',
+      '  }',
+      '  return orig.apply(this, arguments);',
+      '};',
+      'process.on("exit", () => {',
+      '  require("fs").writeFileSync(process.env.QAI_LOAD_HITS, JSON.stringify(hits));',
+      '});',
+      '',
+    ].join('\n'),
+  );
+  try {
+    const result = runCli(['flow', 'http://127.0.0.1:9/', 'Create a board', '--json'], {
+      env: {
+        TYPESAFE_API_KEY: '',
+        ANTHROPIC_API_KEY: '',
+        OPENAI_API_KEY: '',
+        GEMINI_API_KEY: '',
+        CODEX_API_KEY: '',
+        PROVIDER: '',
+        QAI_PROVIDER: '',
+        NODE_OPTIONS: `--require ${preload}`,
+        QAI_LOAD_HITS: hitsPath,
+      },
+    });
+    assert.equal(result.status, 0, result.stderr);
+    const report = JSON.parse(result.stdout);
+    assert.equal(report.status, 'skipped');
+    const hits = fs.existsSync(hitsPath) ? JSON.parse(fs.readFileSync(hitsPath, 'utf8')) : [];
+    assert.deepEqual(hits, []);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
 });
 
 test('CLI skips without TYPESAFE_API_KEY and rejects a bad option', () => {

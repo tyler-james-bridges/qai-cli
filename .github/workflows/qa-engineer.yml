@@ -45,7 +45,11 @@ on:
         default: true
     secrets:
       ANTHROPIC_API_KEY:
-        required: true
+        required: false
+      OPENAI_API_KEY:
+        required: false
+      GEMINI_API_KEY:
+        required: false
 
 permissions:
   contents: read
@@ -86,14 +90,26 @@ jobs:
 
       - name: Validate API Key
         env:
+          QAI_PROVIDER: ${{ vars.QAI_PROVIDER }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
-          if [ -z "$ANTHROPIC_API_KEY" ]; then
-            echo "❌ Error: ANTHROPIC_API_KEY secret is not configured"
-            echo "Please add your Anthropic API key to repository secrets."
-            exit 1
+          provider=$(printf '%s' "$QAI_PROVIDER" | tr '[:upper:]' '[:lower:]')
+          if [ "$provider" = "ollama" ]; then
+            echo "✓ Ollama selected (no API key required)"
+            exit 0
           fi
-          echo "✓ API key configured"
+          if [ -n "$ANTHROPIC_API_KEY" ] || [ -n "$OPENAI_API_KEY" ] || [ -n "$GEMINI_API_KEY" ]; then
+            echo "✓ Provider key configured"
+            if [ -n "$provider" ]; then
+              echo "✓ QAI_PROVIDER=$provider"
+            fi
+            exit 0
+          fi
+          echo "❌ Error: no provider API key is configured"
+          echo "Add ANTHROPIC_API_KEY, OPENAI_API_KEY, or GEMINI_API_KEY to repository secrets."
+          exit 1
 
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -149,50 +165,87 @@ jobs:
       - name: Create Screenshots Directory
         run: mkdir -p screenshots
 
+      # QAI_PROVIDER (repository variable) selects the provider. anthropic or unset
+      # keeps the Claude Code agent. openai, gemini, codex, and ollama use qai scan.
       - name: Run qai
         id: qa-run
         env:
+          QAI_PROVIDER: ${{ vars.QAI_PROVIDER }}
+          PROVIDER: ${{ vars.QAI_PROVIDER }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           TEST_URL: ${{ steps.get-url.outputs.test_url }}
           TEST_FOCUS: ${{ inputs.focus || 'all' }}
+          FOCUS: ${{ inputs.focus || 'all' }}
+          URL: ${{ steps.get-url.outputs.test_url }}
         run: |
+          set +e
+          provider=$(printf '%s' "$QAI_PROVIDER" | tr '[:upper:]' '[:lower:]')
           echo "::group::QA Testing Configuration"
           echo "URL: $TEST_URL"
           echo "Focus Area: $TEST_FOCUS"
+          echo "QAI_PROVIDER: ${provider:-auto}"
           echo "::endgroup::"
 
           echo "::group::Starting qai"
           START_TIME=$(date +%s)
 
-          # 5 minute timeout, max 15 turns - be aggressive about speed
-          timeout 300 npx @anthropic-ai/claude-code --print \
-            --mcp-config .claude/mcp-config.json \
-            --max-turns 15 \
-            "SPEED IS CRITICAL. You have 3 minutes max.
+          case "$provider" in
+            openai|gemini|codex|ollama)
+              echo "Running qai scan (provider: $provider)"
+              timeout 300 node src/index.js scan "$TEST_URL" > qa-run.log 2>&1
+              EXIT_CODE=$?
+              ;;
+            *)
+            # 5 minute timeout, max 15 turns - be aggressive about speed
+            timeout 300 npx @anthropic-ai/claude-code --print \
+              --mcp-config .claude/mcp-config.json \
+              --max-turns 15 \
+              "SPEED IS CRITICAL. You have 3 minutes max.
 
-             Test $TEST_URL:
-             1. Navigate to URL
-             2. Screenshot desktop view -> ./screenshots/desktop.png
-             3. Screenshot mobile (375px) -> ./screenshots/mobile.png
-             4. Check for console errors
-             5. Click 2-3 buttons/links to verify they work
-             6. Write ./qa-report.md: list any bugs found, or 'No issues found'
+               Test $TEST_URL:
+               1. Navigate to URL
+               2. Screenshot desktop view -> ./screenshots/desktop.png
+               3. Screenshot mobile (375px) -> ./screenshots/mobile.png
+               4. Check for console errors
+               5. Click 2-3 buttons/links to verify they work
+               6. Write ./qa-report.md: list any bugs found, or 'No issues found'
 
-             DO NOT: test multiple viewports, do exhaustive testing, write long reports.
-             STOP after basic checks. Speed > thoroughness." || {
+               DO NOT: test multiple viewports, do exhaustive testing, write long reports.
+               STOP after basic checks. Speed > thoroughness." > qa-run.log 2>&1
             EXIT_CODE=$?
-            if [ $EXIT_CODE -eq 124 ]; then
-              echo "⚠️ QA testing timed out after 5 minutes"
-            else
-              echo "⚠️ QA testing encountered an error (exit code: $EXIT_CODE)"
+            # Claude Code only speaks Anthropic. If that call is a billing/auth/model
+            # failure and another key is configured, qai scan uses getProvider fallback.
+            if [ ! -f qa-report.md ] && { [ -n "$OPENAI_API_KEY" ] || [ -n "$GEMINI_API_KEY" ]; }; then
+              if node -e 'const fs=require("fs");const {isProviderUnavailable}=require("./scripts/classify-qai-review");process.exit(isProviderUnavailable(fs.readFileSync("qa-run.log","utf8"))?0:1)'; then
+                echo "Claude Code provider unavailable; running qai scan with the next provider"
+                timeout 300 node src/index.js scan "$TEST_URL" > qa-scan.log 2>&1
+                EXIT_CODE=$?
+                cat qa-scan.log >> qa-run.log
+              fi
             fi
-          }
+              ;;
+          esac
+
+          if [ "$EXIT_CODE" -eq 124 ]; then
+            echo "⚠️ QA testing timed out after 5 minutes" | tee -a qa-run.log
+          elif [ "$EXIT_CODE" -ne 0 ]; then
+            echo "⚠️ QA testing encountered an error (exit code: $EXIT_CODE)" | tee -a qa-run.log
+          fi
+          cat qa-run.log
 
           END_TIME=$(date +%s)
           DURATION=$((END_TIME - START_TIME))
           echo "✓ QA testing completed in ${DURATION}s"
           echo "::endgroup::"
-          echo "qa_duration_seconds=$DURATION" >> $GITHUB_OUTPUT
+          echo "qa_duration_seconds=$DURATION" >> "$GITHUB_OUTPUT"
+          echo "exit_code=$EXIT_CODE" >> "$GITHUB_OUTPUT"
+          set -e
+
+      - name: Classify qa-test result
+        id: qa-classify
+        run: node scripts/classify-qa-run.js qa-run.log "${{ steps.qa-run.outputs.exit_code }}"
 
       - name: Upload Screenshots
         uses: actions/upload-artifact@v4
@@ -221,7 +274,11 @@ jobs:
           echo "**Focus Area:** ${{ inputs.focus || 'all' }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
-          if [ -f "qa-report.md" ]; then
+          if [ "${{ steps.qa-classify.outputs.outcome }}" = "skipped" ]; then
+            echo "⚠️ skipped: provider unavailable" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Provider/auth/billing failure is not a QA result." >> $GITHUB_STEP_SUMMARY
+          elif [ -f "qa-report.md" ]; then
             echo "### Report" >> $GITHUB_STEP_SUMMARY
             cat qa-report.md >> $GITHUB_STEP_SUMMARY
           else
@@ -231,24 +288,39 @@ jobs:
       - name: Comment on PR
         if: github.event_name == 'pull_request' && always()
         uses: actions/github-script@v7
+        env:
+          QA_OUTCOME: ${{ steps.qa-classify.outputs.outcome }}
+          TEST_URL: ${{ steps.get-url.outputs.test_url }}
+          TEST_FOCUS: ${{ inputs.focus || 'all' }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         with:
           script: |
             const fs = require('fs');
+            const outcome = process.env.QA_OUTCOME || '';
+            const testUrl = process.env.TEST_URL || '';
+            const focus = process.env.TEST_FOCUS || 'all';
+            const runUrl = process.env.RUN_URL || '';
 
-            let body = '## 🤖 qai Report\n\n';
-            body += `**URL Tested:** ${{ steps.get-url.outputs.test_url }}\n`;
-            body += `**Focus Area:** ${{ inputs.focus || 'all' }}\n\n`;
-
-            if (fs.existsSync('qa-report.md')) {
-              const report = fs.readFileSync('qa-report.md', 'utf8');
-              body += report;
+            let body;
+            if (outcome === 'skipped') {
+              body = '## 🤖 qai Report — skipped: provider unavailable\n\n';
+              body += `**URL Tested:** ${testUrl}\n`;
+              body += `**Focus Area:** ${focus}\n\n`;
+              body += 'Provider/auth/billing failure is not a QA result.\n';
             } else {
-              body += '⚠️ No QA report generated. Check the [workflow logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) for details.\n';
+              body = '## 🤖 qai Report\n\n';
+              body += `**URL Tested:** ${testUrl}\n`;
+              body += `**Focus Area:** ${focus}\n\n`;
+              if (fs.existsSync('qa-report.md')) {
+                body += fs.readFileSync('qa-report.md', 'utf8');
+              } else {
+                body += `⚠️ No QA report generated. Check the [workflow logs](${runUrl}) for details.\n`;
+              }
             }
 
             body += `\n\n### 📎 Artifacts\n`;
-            body += `- [Screenshots](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})\n`;
-            body += `- [Full Report](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})\n`;
+            body += `- [Screenshots](${runUrl})\n`;
+            body += `- [Full Report](${runUrl})\n`;
             body += '\n---\n*Automated QA testing by [qai](https://github.com/tyler-james-bridges/qai-cli)*';
 
             // Find existing comment to update (avoid spam)
@@ -279,8 +351,14 @@ jobs:
               });
             }
 
+      - name: Skip when provider unavailable
+        if: steps.qa-classify.outputs.outcome == 'skipped'
+        run: |
+          echo "::warning::skipped: provider unavailable"
+          echo "Provider/auth/billing failure is not a QA result."
+
       - name: Check for critical bugs
-        if: ${{ inputs.fail_on_bugs }}
+        if: ${{ github.event_name == 'pull_request' || inputs.fail_on_bugs }}
         run: |
           if [ ! -f "qa-report.md" ]; then
             echo "No QA report found - skipping bug check"

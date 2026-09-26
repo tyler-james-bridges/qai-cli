@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Boards</title>
+  </head>
+  <body>
+    <h1>Boards</h1>
+    <button type="button" id="new-board">New board</button>
+    <form id="board-form" hidden>
+      <input aria-label="Board name" name="board" />
+      <button type="submit">Create board</button>
+    </form>
+    <section id="workspace" hidden>
+      <h2 id="board-title"></h2>
+      <button type="button" id="add-list">Add list</button>
+      <form id="list-form" hidden>
+        <input aria-label="List name" name="list" />
+        <button type="submit">Create list</button>
+      </form>
+      <div id="lists"></div>
+    </section>
+    <p id="status" role="status"></p>
+    <script>
+      const boardForm = document.querySelector('#board-form');
+      const listForm = document.querySelector('#list-form');
+      const workspace = document.querySelector('#workspace');
+      const status = document.querySelector('#status');
+
+      document.querySelector('#new-board').addEventListener('click', () => {
+        boardForm.hidden = false;
+        document.querySelector('#new-board').hidden = true;
+      });
+
+      boardForm.addEventListener('submit', (event) => {
+        event.preventDefault();
+        document.querySelector('#board-title').textContent = boardForm.board.value;
+        workspace.hidden = false;
+        boardForm.hidden = true;
+      });
+
+      document.querySelector('#add-list').addEventListener('click', () => {
+        listForm.hidden = false;
+        document.querySelector('#add-list').hidden = true;
+      });
+
+      listForm.addEventListener('submit', (event) => {
+        event.preventDefault();
+        const section = document.createElement('section');
+        const heading = document.createElement('h3');
+        heading.textContent = listForm.list.value;
+        const list = document.createElement('ul');
+        const addCard = document.createElement('button');
+        addCard.type = 'button';
+        addCard.textContent = 'Add card';
+        const cardForm = document.createElement('form');
+        cardForm.hidden = true;
+        const cardInput = document.createElement('input');
+        cardInput.setAttribute('aria-label', 'Card title');
+        cardInput.name = 'card';
+        const saveCard = document.createElement('button');
+        saveCard.type = 'submit';
+        saveCard.textContent = 'Save card';
+        cardForm.append(cardInput, saveCard);
+        addCard.addEventListener('click', () => {
+          cardForm.hidden = false;
+          addCard.hidden = true;
+        });
+        cardForm.addEventListener('submit', (cardEvent) => {
+          cardEvent.preventDefault();
+          const item = document.createElement('li');
+          item.textContent = cardInput.value;
+          list.append(item);
+          cardForm.hidden = true;
+          status.textContent = 'Card ready';
+        });
+        section.append(heading, addCard, cardForm, list);
+        document.querySelector('#lists').append(section);
+        listForm.hidden = true;
+      });
+    </script>
+  </body>
+</html>

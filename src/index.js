@@ -14,6 +14,10 @@ if (command === 'check' || isHttpUrl(command)) {
   // Loaded only for risk so check/verify never import the TypeSafe SDK.
   const { runRisk } = require('./risk');
   runRisk().catch(handleVerifyError);
+} else if (command === 'flow') {
+  // Loaded only for flow so check/verify never import Playwright or the TypeSafe SDK.
+  const { runFlow } = require('./flow');
+  runFlow().catch(handleVerifyError);
 } else if (command === 'review' || command === 'generate' || command === 'scan') {
   // Loaded only for optional AI commands so check/verify never import providers.
   const { dispatch } = require('./ai-cli');
@@ -39,13 +43,14 @@ function printVersion() {
 function printHelp() {
   const pkg = require('../package.json');
   console.log(`
-qai v${pkg.version} - evidence-based QA checks. Optional AI for scan, review, generate, and risk.
+qai v${pkg.version} - evidence-based QA checks. Optional AI for scan, review, generate, risk, flow.
 
 Usage:
   qai check <url>                   Live HTTP health check (no API key)
   qai <url>                         Same as check
   qai verify <contract> [options]   Replay a reviewed verification contract
   qai risk [pr] [options]           Change-risk score for a local or PR diff
+  qai flow <url> <goal> [options]   Playwright steps chosen by Jev
   qai help                          Show this help
   qai --version                     Show version
 
@@ -68,9 +73,16 @@ Risk options:
   --json                      Emit one JSON document to stdout
   --out <path>                Persist report without overwriting files
 
+Flow options:
+  <url>                       Page to open (http or https)
+  <goal>                      Outcome to pursue, quoted if it contains spaces
+  --data <key=value>          Fixed text a fill action may type (repeatable)
+  --max-steps <n>             Stop after n actions (default: 15, max: 100)
+  --json                      Emit one JSON document to stdout
+
 Exit codes:
-  0  PASS / AUTO-OK / risk skipped (no TYPESAFE_API_KEY)
-  1  FAIL
+  0  PASS / AUTO-OK / flow done / skipped (no TYPESAFE_API_KEY)
+  1  FAIL / flow failed or max steps
   2  NEEDS HUMAN REVIEW / NEEDS EYES
   3  verifier/input error
 
@@ -79,6 +91,7 @@ Optional AI (requires a provider key):
   qai review <pr> [options]         PR code review
   qai generate <url|file> [options] Test generation
   qai risk [pr]                     TypeSafe change-risk (needs TYPESAFE_API_KEY)
+  qai flow <url> <goal>             Jev picks the next control (needs TYPESAFE_API_KEY)
 
 Scan options:
   URL=<url>                   Target URL (or set via env)
@@ -103,7 +116,7 @@ Environment (AI commands only):
   OPENAI_API_KEY              Use OpenAI GPT-4
   GEMINI_API_KEY              Use Google Gemini
   OLLAMA_HOST                 Use Ollama (local)
-  TYPESAFE_API_KEY            Required for live qai risk judgments
+  TYPESAFE_API_KEY            Required for live qai risk and qai flow judgments
   QAI_VERIFY_NOW              Pin verifier clock (ISO-8601) when replaying recorded evidence
 
 Examples:
@@ -113,6 +126,7 @@ Examples:
   qai verify .qai/task.json --claim completion.md
   qai risk --base main
   qai risk 42
+  qai flow http://127.0.0.1:3000 "Create a board, list, and card" --data board=Trip
   qai scan https://mysite.com
   qai review 42
   qai generate src/utils.ts --dry-run

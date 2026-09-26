@@ -76,7 +76,7 @@ Risk options:
 Flow options:
   <url>                       Page to open (http or https)
   <goal>                      Outcome to pursue, quoted if it contains spaces
-  --data <key=value>          Fixed text a fill action may type (repeatable)
+  --data <key=value>          Fixed text when the key matches the field name
   --max-steps <n>             Stop after n actions (default: 15, max: 100)
   --json                      Emit one JSON document to stdout
 

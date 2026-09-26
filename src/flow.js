@@ -12,6 +12,8 @@ const MAX_CHOICES = 250;
 const SNAPSHOT_CHARS = 12000;
 const ACTION_TIMEOUT_MS = 5000;
 const GOTO_TIMEOUT_MS = 30000;
+const SETTLE_TIMEOUT_MS = 4000;
+const SETTLE_POLL_MS = 100;
 
 const DATA_KEY = /^[A-Za-z_][A-Za-z0-9_-]*$/;
 const ELEMENT_LINE = /^(\s*)-\s+([A-Za-z]+)(?:\s+"((?:\\.|[^"\\])*)")?(.*)$/;
@@ -139,6 +141,14 @@ function capSnapshot(text) {
   return { text: `${body}\n[snapshot truncated]`, truncated: true };
 }
 
+function fieldMatchesKey(name, key) {
+  const phrase = String(key).toLowerCase().replace(/[_-]+/g, ' ').replace(/\s+/g, ' ').trim();
+  if (!phrase) return false;
+  const escaped = phrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const word = new RegExp(`(?:^|[^a-z0-9])${escaped}(?=$|[^a-z0-9])`);
+  return word.test(String(name).toLowerCase());
+}
+
 function actionsFromSnapshot(snapshot, data) {
   const capped = capSnapshot(snapshot);
   const dataKeys = Object.keys(data || {});
@@ -177,6 +187,7 @@ function actionsFromSnapshot(snapshot, data) {
     }
     if (FILL_ROLES.has(role)) {
       for (const dataKey of dataKeys) {
+        if (!fieldMatchesKey(name, dataKey)) continue;
         additions.push({
           key: `fill_${elementId}_${dataKey}`,
           spec: { ...base, type: 'fill', key: dataKey, value: data[dataKey] },
@@ -257,7 +268,7 @@ function instructionsFor(goal) {
     `Goal: ${goal} ` +
     'Choose the single next action from the criteria. ' +
     'Choose done only when the goal is already achieved. ' +
-    'A fill action types one caller-supplied value. Do not invent text.'
+    'A fill is offered only when a data key matches the field name. Do not invent text.'
   );
 }
 
@@ -322,6 +333,26 @@ async function captureSnapshot(page) {
   return capSnapshot(raw);
 }
 
+async function waitForSettle(page, beforeText) {
+  const deadline = Date.now() + SETTLE_TIMEOUT_MS;
+  while (Date.now() < deadline) {
+    let text = beforeText;
+    try {
+      text = (await captureSnapshot(page)).text;
+    } catch {
+      text = beforeText;
+    }
+    if (text !== beforeText) {
+      const quiet = Math.min(500, Math.max(1, deadline - Date.now()));
+      await page.waitForLoadState('networkidle', { timeout: quiet }).catch(() => {});
+      return;
+    }
+    const pause = Math.min(SETTLE_POLL_MS, deadline - Date.now());
+    if (pause <= 0) return;
+    await page.waitForTimeout(pause);
+  }
+}
+
 async function performAction(page, spec) {
   const locator = page
     .getByRole(spec.role, { name: spec.name, exact: true, disabled: false })
@@ -355,7 +386,7 @@ async function runSteps(page, client, options, report) {
       url: page.url(),
       title: await page.title(),
       data_keys: Object.keys(options.data),
-      typing: 'Choose a fill action to type one fixed data value. Do not invent text.',
+      typing: 'Fill is offered only when a data key matches the field name. Do not invent text.',
       history,
       snapshot: built.text,
       snapshot_truncated: snapshot.truncated,
@@ -429,7 +460,7 @@ async function runSteps(page, client, options, report) {
 
     try {
       await performAction(page, built.actions.get(choice));
-      await page.waitForLoadState('domcontentloaded').catch(() => {});
+      await waitForSettle(page, built.text);
     } catch (error) {
       failStep(
         report,

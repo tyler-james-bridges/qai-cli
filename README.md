@@ -75,7 +75,7 @@ Exit `0` for `auto-ok` or skip, `2` for `needs-eyes`.
 
 ### Drive a page toward a goal
 
-`qai flow` opens a URL in Playwright and asks Jev for one next action. The choice set is closed: named controls from that step's accessibility snapshot, plus `done`. Fill actions type only the strings passed with `--data`. Jev does not invent text.
+`qai flow` opens a URL in Playwright and asks Jev for one next action. The choice set is closed: named controls from that step's accessibility snapshot, plus `done`. A fill is offered only when a `--data` key matches the field's accessible name (`board` matches "Board name", not "List name"). Jev does not invent text. After each action the command waits, up to a few seconds, until that snapshot changes and the network is idle, so a client-side route is not judged from the previous page.
 
 ```bash
 qai flow http://127.0.0.1:3000 "Create a board, list, and card" \
@@ -83,7 +83,7 @@ qai flow http://127.0.0.1:3000 "Create a board, list, and card" \
 qai flow https://example.com "Open the pricing page" --max-steps 8 --json
 ```
 
-Each step records the chosen action, Jev's latency, and token or cost fields when the response includes them. The command prints a summary with total wall time. `--json` prints that report as one JSON document.
+Each step records the chosen action, Jev's latency, and token or cost fields when the response includes them. Jev currently returns `input_tokens` and `output_tokens` only, with no cost field. The command prints a summary with total wall time. `--json` prints that report as one JSON document.
 
 Exit `0` when Jev chooses `done`. Exit `1` when a step fails or `--max-steps` is hit (default 15). If `TYPESAFE_API_KEY` is missing, the command prints `SKIPPED` and exits `0` without opening a browser.
 

@@ -18,9 +18,12 @@ const DATA = { board: 'Trip', list: 'Todo', card: 'Pack' };
 function startFixtureServer() {
   const board = fs.readFileSync(fixture('flow', 'board.html'));
   const missing = fs.readFileSync(fixture('flow', 'missing.html'));
+  const spa = fs.readFileSync(fixture('flow', 'spa.html'));
   const server = http.createServer((req, res) => {
     const pathName = new URL(req.url, 'http://127.0.0.1').pathname;
-    const body = pathName === '/missing' ? missing : board;
+    let body = board;
+    if (pathName === '/missing') body = missing;
+    else if (pathName === '/spa' || pathName === '/docs') body = spa;
     res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
     res.end(body);
   });
@@ -32,6 +35,7 @@ function startFixtureServer() {
         server,
         boardUrl: `http://127.0.0.1:${port}/`,
         missingUrl: `http://127.0.0.1:${port}/missing`,
+        spaUrl: `http://127.0.0.1:${port}/spa`,
       });
     });
   });
@@ -156,6 +160,22 @@ test('pickUsage keeps numeric token and cost fields and invents nothing else', (
   assert.deepEqual(summed, { input_tokens: 5, cost_usd: 0.1 });
 });
 
+test('a data key is not a fill for an unmatched field name', () => {
+  const snapshot = [
+    '- textbox "Board name"',
+    '- textbox "List name"',
+    '- textbox "Card title"',
+  ].join('\n');
+  const built = actionsFromSnapshot(snapshot, { board: 'Trip' });
+  assert.equal(built.actions.get('fill_e1_board').value, 'Trip');
+  assert.equal(built.actions.get('fill_e1_board').name, 'Board name');
+  const fills = Object.entries(built.criteria).filter(([key]) => key.startsWith('fill_'));
+  assert.deepEqual(
+    fills.map(([, description]) => description),
+    ['Type the fixed board value into textbox "Board name"'],
+  );
+});
+
 test('actionsFromSnapshot offers clicks and fixed fills, skipping disabled controls', () => {
   const snapshot = [
     '- heading "Boards" [level=1]',
@@ -247,6 +267,90 @@ test('multi-step goal types only --data values and reaches done', { timeout: 600
   assert.match(human, /input_tokens=900/);
   assert.match(human, /cost_usd=0\.0001/);
   assert.equal(human.split('cost_usd=').length - 1, 2);
+});
+
+test('client-side navigation waits for the new snapshot', { timeout: 60000 }, async () => {
+  const result = await flow({
+    url: pages.spaUrl,
+    goal: 'Open the Docs page',
+    maxSteps: 3,
+    client: {
+      async systemOne(request) {
+        const snapshot = request.state.snapshot || '';
+        if (snapshot.includes('heading "Docs intro"')) {
+          return { answers: { next: { type: 'choice', choice: 'done', confidence: 1 } } };
+        }
+        const click = findAction(request.questions.next.criteria, /link "Docs"/);
+        if (!click) {
+          throw new Error(`Docs link was not offered. Snapshot: ${snapshot}`);
+        }
+        return { answers: { next: { type: 'choice', choice: click, confidence: 1 } } };
+      },
+    },
+  });
+
+  assert.equal(result.exitCode, 0, JSON.stringify(result.report, null, 2));
+  assert.equal(result.report.status, 'done');
+  assert.match(result.report.final_snapshot, /heading "Docs intro"/);
+  assert.doesNotMatch(result.report.final_snapshot, /heading "Home"/);
+  assert.equal(result.report.steps.length, 2);
+  assert.match(result.report.steps[0].description, /link "Docs"/);
+});
+
+test('one data key is not typed into an unmatched field', { timeout: 60000 }, async () => {
+  const requests = [];
+  const result = await flow({
+    url: pages.boardUrl,
+    goal: 'Create a board',
+    data: { board: 'Trip' },
+    maxSteps: 8,
+    client: {
+      async systemOne(request) {
+        requests.push(request);
+        const criteria = request.questions.next.criteria;
+        const snapshot = request.state.snapshot || '';
+        const lastAction = (request.state.history || []).at(-1)?.action || '';
+        if (snapshot.includes('textbox "List name"') || snapshot.includes('textbox "Card title"')) {
+          return { answers: { next: { type: 'choice', choice: 'done', confidence: 1 } } };
+        }
+        if (!snapshot.includes('heading "Trip"')) {
+          if (!lastAction.startsWith('fill_')) {
+            const fill = findAction(criteria, /^fill_e\d+_board .*textbox "Board name"/);
+            if (fill) {
+              return { answers: { next: { type: 'choice', choice: fill, confidence: 1 } } };
+            }
+          }
+          const create = findAction(criteria, /button "Create board"/);
+          if (create && lastAction.startsWith('fill_')) {
+            return { answers: { next: { type: 'choice', choice: create, confidence: 1 } } };
+          }
+          const open = findAction(criteria, /button "New board"/);
+          if (open) {
+            return { answers: { next: { type: 'choice', choice: open, confidence: 1 } } };
+          }
+        }
+        const addList = findAction(criteria, /button "Add list"/);
+        if (addList) {
+          return { answers: { next: { type: 'choice', choice: addList, confidence: 1 } } };
+        }
+        return { answers: { next: { type: 'choice', choice: 'done', confidence: 1 } } };
+      },
+    },
+  });
+
+  assert.equal(result.exitCode, 0, JSON.stringify(result.report, null, 2));
+  assert.match(result.report.final_snapshot, /heading "Trip"/);
+  assert.match(result.report.final_snapshot, /textbox "List name"/);
+  const fills = result.report.steps.filter((step) => String(step.action).startsWith('fill_'));
+  assert.equal(fills.length, 1);
+  assert.match(fills[0].description, /textbox "Board name"/);
+  for (const request of requests) {
+    for (const [key, description] of Object.entries(request.questions.next.criteria)) {
+      if (!key.startsWith('fill_')) continue;
+      assert.match(description, /textbox "Board name"/);
+      assert.doesNotMatch(description, /List name|Card title/);
+    }
+  }
 });
 
 test('missing element fails cleanly and does not click another control', { timeout: 60000 }, async () => {

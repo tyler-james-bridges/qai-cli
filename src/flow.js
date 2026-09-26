@@ -157,6 +157,7 @@ function actionsFromSnapshot(snapshot, data) {
   const criteria = {
     done: 'The goal is already achieved. Choose this instead of another action.',
   };
+  const unmatched = [];
   let actionsTruncated = false;
   let elementNumber = 0;
 
@@ -186,14 +187,17 @@ function actionsFromSnapshot(snapshot, data) {
       });
     }
     if (FILL_ROLES.has(role)) {
+      let matched = false;
       for (const dataKey of dataKeys) {
         if (!fieldMatchesKey(name, dataKey)) continue;
+        matched = true;
         additions.push({
           key: `fill_${elementId}_${dataKey}`,
           spec: { ...base, type: 'fill', key: dataKey, value: data[dataKey] },
           description: `Type the fixed ${dataKey} value into ${role} "${shown}"`,
         });
       }
+      if (!matched) unmatched.push({ role, name });
     }
 
     for (const addition of additions) {
@@ -210,9 +214,23 @@ function actionsFromSnapshot(snapshot, data) {
   return {
     criteria,
     actions,
+    unmatched,
     truncated: actionsTruncated,
     text: capped.text,
   };
+}
+
+function missingDataMessage(fields) {
+  const labels = [];
+  const seen = new Set();
+  for (const field of fields) {
+    const label = `${field.role} "${field.name}"`;
+    if (seen.has(label)) continue;
+    seen.add(label);
+    labels.push(label);
+  }
+  const noun = labels.length === 1 ? 'that field' : 'those fields';
+  return `Cannot submit ${labels.join(', ')}: no --data key matches ${noun}.`;
 }
 
 function pickUsage(source) {
@@ -353,10 +371,54 @@ async function waitForSettle(page, beforeText) {
   }
 }
 
-async function performAction(page, spec) {
-  const locator = page
+function locatorFor(page, spec) {
+  return page
     .getByRole(spec.role, { name: spec.name, exact: true, disabled: false })
     .nth(spec.nth);
+}
+
+const SUBMIT_FORM_ATTR = 'data-qai-flow-form';
+
+async function unmatchedFieldsOnSubmit(page, spec, unmatched) {
+  if (!spec || spec.type !== 'click' || !unmatched || unmatched.length === 0) return [];
+  const marked = await locatorFor(page, spec).evaluate((el, attr) => {
+    const tag = el.tagName;
+    const type = (el.getAttribute('type') || '').toLowerCase();
+    const submits =
+      (tag === 'BUTTON' && type !== 'button' && type !== 'reset') ||
+      (tag === 'INPUT' && (type === 'submit' || type === 'image'));
+    if (!submits) return false;
+    const form = el.form || el.closest('form');
+    if (!form) return false;
+    form.setAttribute(attr, '1');
+    return true;
+  }, SUBMIT_FORM_ATTR);
+  if (!marked) return [];
+
+  const form = page.locator(`[${SUBMIT_FORM_ATTR}="1"]`);
+  try {
+    const yaml = await form.ariaSnapshot();
+    const wanted = new Set(unmatched.map((field) => `${field.role}\0${field.name}`));
+    const hit = [];
+    const seen = new Set();
+    for (const line of yaml.split('\n')) {
+      const match = ELEMENT_LINE.exec(line);
+      if (!match) continue;
+      const role = match[2].toLowerCase();
+      const name = match[3] ? unescapeName(match[3]) : '';
+      const key = `${role}\0${name}`;
+      if (!name || !wanted.has(key) || seen.has(key)) continue;
+      seen.add(key);
+      hit.push({ role, name });
+    }
+    return hit;
+  } finally {
+    await form.evaluate((el, attr) => el.removeAttribute(attr), SUBMIT_FORM_ATTR).catch(() => {});
+  }
+}
+
+async function performAction(page, spec) {
+  const locator = locatorFor(page, spec);
   if ((await locator.count()) < 1) {
     throw new Error(`Element not found for ${spec.type}: ${spec.role} "${spec.name}".`);
   }
@@ -459,7 +521,10 @@ async function runSteps(page, client, options, report) {
     }
 
     try {
-      await performAction(page, built.actions.get(choice));
+      const spec = built.actions.get(choice);
+      const blocked = await unmatchedFieldsOnSubmit(page, spec, built.unmatched);
+      if (blocked.length) throw new Error(missingDataMessage(blocked));
+      await performAction(page, spec);
       await waitForSettle(page, built.text);
     } catch (error) {
       failStep(

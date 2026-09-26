@@ -75,7 +75,7 @@ Exit `0` for `auto-ok` or skip, `2` for `needs-eyes`.
 
 ### Drive a page toward a goal
 
-`qai flow` opens a URL in Playwright and asks Jev for one next action. The choice set is closed: named controls from that step's accessibility snapshot, plus `done`. A fill is offered only when a `--data` key matches the field's accessible name (`board` matches "Board name", not "List name"). Jev does not invent text. After each action the command waits, up to a few seconds, until that snapshot changes and the network is idle, so a client-side route is not judged from the previous page.
+`qai flow` opens a URL in Playwright and asks Jev for one next action. The choice set is closed: named controls from that step's accessibility snapshot, plus `done`. A fill is offered only when a `--data` key matches the field's accessible name (`board` matches "Board name", not "List name"). Jev does not invent text. Submitting a form that still contains a textbox with no matching key fails the run and names that field, so an empty submit cannot end as `done`. After each action the command waits, up to a few seconds, until that snapshot changes and the network is idle, so a client-side route is not judged from the previous page.
 
 ```bash
 qai flow http://127.0.0.1:3000 "Create a board, list, and card" \

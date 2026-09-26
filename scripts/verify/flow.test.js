@@ -353,6 +353,75 @@ test('one data key is not typed into an unmatched field', { timeout: 60000 }, as
   }
 });
 
+test('board-only data fails instead of submitting empty fields', { timeout: 60000 }, async () => {
+  const result = await flow({
+    url: pages.boardUrl,
+    goal: 'Create a board, list, and card',
+    data: { board: 'Trip' },
+    maxSteps: 15,
+    client: {
+      async systemOne(request) {
+        const criteria = request.questions.next.criteria;
+        const snapshot = request.state.snapshot || '';
+        const last = (request.state.history || []).at(-1)?.action || '';
+        if (snapshot.includes('status: Card ready')) {
+          return { answers: { next: { type: 'choice', choice: 'done', confidence: 1 } } };
+        }
+        if (!snapshot.includes('heading "Trip"')) {
+          if (!last.startsWith('fill_')) {
+            const fill = findAction(criteria, /textbox "Board name"/);
+            if (fill) {
+              return { answers: { next: { type: 'choice', choice: fill, confidence: 1 } } };
+            }
+          }
+          const create = findAction(criteria, /button "Create board"/);
+          if (create && last.startsWith('fill_')) {
+            return { answers: { next: { type: 'choice', choice: create, confidence: 1 } } };
+          }
+          const open = findAction(criteria, /button "New board"/);
+          if (open) {
+            return { answers: { next: { type: 'choice', choice: open, confidence: 1 } } };
+          }
+        }
+        if (snapshot.includes('textbox "List name"')) {
+          const create = findAction(criteria, /button "Create list"/);
+          if (create) {
+            return { answers: { next: { type: 'choice', choice: create, confidence: 1 } } };
+          }
+        }
+        if (snapshot.includes('textbox "Card title"')) {
+          const save = findAction(criteria, /button "Save card"/);
+          if (save) {
+            return { answers: { next: { type: 'choice', choice: save, confidence: 1 } } };
+          }
+        }
+        const addList = findAction(criteria, /button "Add list"/);
+        if (addList) {
+          return { answers: { next: { type: 'choice', choice: addList, confidence: 1 } } };
+        }
+        const addCard = findAction(criteria, /button "Add card"/);
+        if (addCard) {
+          return { answers: { next: { type: 'choice', choice: addCard, confidence: 1 } } };
+        }
+        return { answers: { next: { type: 'choice', choice: 'done', confidence: 1 } } };
+      },
+    },
+  });
+
+  assert.equal(result.exitCode, 1, JSON.stringify(result.report, null, 2));
+  assert.equal(result.report.status, 'failed');
+  assert.notEqual(result.report.steps.at(-1).action, 'done');
+  assert.match(result.report.error, /List name/);
+  assert.match(result.report.error, /no --data key matches/);
+  assert.match(result.report.final_snapshot, /heading "Trip"/);
+  assert.match(result.report.final_snapshot, /textbox "List name"/);
+  assert.doesNotMatch(result.report.final_snapshot, /Card ready/);
+  assert.equal(
+    result.report.steps.some((step) => /Save card/.test(step.description || '')),
+    false,
+  );
+});
+
 test('missing element fails cleanly and does not click another control', { timeout: 60000 }, async () => {
   const result = await flow({
     url: pages.missingUrl,

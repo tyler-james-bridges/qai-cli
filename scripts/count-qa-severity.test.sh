@@ -66,6 +66,17 @@ cat >"$tmp/none.md" <<'EOF'
 No bugs found.
 EOF
 
+cat >"$tmp/placeholder.md" <<'EOF'
+# QA Report
+
+## Bugs Found
+
+**Severity:** [critical|high|medium|low]
+Write exactly one of those words: critical, high, medium, or low.
+
+No bugs found. SPEED IS CRITICAL.
+EOF
+
 old_count() {
   local pattern="$1"
   local file="$2"
@@ -121,6 +132,16 @@ echo "old critical=$(old_count '(critical|severity:\s*critical)' "$tmp/high.md")
 echo "old high=$(old_count '(high|severity:\s*high)' "$tmp/high.md")"
 run_new "$tmp/high.md"
 expect high 1 0 1
+
+echo
+echo "=== placeholder line is not a finding ==="
+run_new "$tmp/placeholder.md"
+expect placeholder 0 0 0
+
+echo
+echo "=== template file itself ==="
+run_new "$root/.claude/qa-engineer-prompt.md"
+expect template 0 0 0
 
 echo
 echo "=== no severity words (old grep -c || echo 0) ==="

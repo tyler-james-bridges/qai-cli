@@ -134,7 +134,7 @@ Structure your report as:
 
 ### [BUG-001] [Title]
 
-- **Severity**: Critical/High/Medium/Low
+**Severity:** critical
 - **Category**: Visual / Functional / Network / Accessibility / Performance
 - **Viewport**: [size]
 - **Steps to Reproduce**:

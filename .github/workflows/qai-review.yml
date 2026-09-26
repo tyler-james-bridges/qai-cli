@@ -7,6 +7,7 @@ on:
 permissions:
   contents: read
   pull-requests: write
+  issues: write
 
 jobs:
   review:
@@ -53,16 +54,14 @@ jobs:
         run: node scripts/classify-qai-review.js review-output.json "${{ steps.review.outputs.exit_code }}"
 
       - name: Post Review Comment
+        if: steps.classify.outputs.outcome != 'skipped'
         env:
           GH_TOKEN: ${{ github.token }}
           OUTCOME: ${{ steps.classify.outputs.outcome }}
           NOTE: ${{ steps.classify.outputs.note }}
         run: |
           BODY=$(cat review-output.json)
-          if [ "$OUTCOME" = "skipped" ]; then
-            HEADER="## 🤖 QAI Code Review — skipped: provider unavailable"
-            INTRO="Provider/auth/billing failure is not a review finding. lint and qa-test remain the merge gates."
-          elif [ "$OUTCOME" = "fail" ]; then
+          if [ "$OUTCOME" = "fail" ]; then
             HEADER="## 🤖 QAI Code Review — critical findings"
             INTRO="$NOTE"
           else
@@ -83,11 +82,24 @@ jobs:
 
           </details>"
 
+      # qai risk exit 2 (needs-eyes) and a missing TypeSafe key must not fail the job.
+      - name: Post change-risk fallback
+        if: steps.classify.outputs.outcome == 'skipped'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          SKIP_REASON: ${{ steps.classify.outputs.note }}
+          REVIEW_LOG: review-output.json
+          TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
+        run: |
+          node scripts/qai-review-fallback.js || echo "::warning::change-risk fallback did not complete"
+
       - name: Skip when provider unavailable
         if: steps.classify.outputs.outcome == 'skipped'
         run: |
           echo "::warning::skipped: provider unavailable"
           echo "${{ steps.classify.outputs.note }}"
+          echo "Posted change-risk fallback. It is not an AI review finding."
           echo "lint and qa-test remain the merge gates."
 
       - name: Fail on Critical Issues

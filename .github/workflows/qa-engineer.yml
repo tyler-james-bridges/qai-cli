@@ -215,6 +215,16 @@ jobs:
                DO NOT: test multiple viewports, do exhaustive testing, write long reports.
                STOP after basic checks. Speed > thoroughness." > qa-run.log 2>&1
             EXIT_CODE=$?
+            # Claude Code only speaks Anthropic. If that call is a billing/auth/model
+            # failure and another key is configured, qai scan uses getProvider fallback.
+            if [ ! -f qa-report.md ] && { [ -n "$OPENAI_API_KEY" ] || [ -n "$GEMINI_API_KEY" ]; }; then
+              if node -e 'const fs=require("fs");const {isProviderUnavailable}=require("./scripts/classify-qai-review");process.exit(isProviderUnavailable(fs.readFileSync("qa-run.log","utf8"))?0:1)'; then
+                echo "Claude Code provider unavailable; running qai scan with the next provider"
+                timeout 300 node src/index.js scan "$TEST_URL" > qa-scan.log 2>&1
+                EXIT_CODE=$?
+                cat qa-scan.log >> qa-run.log
+              fi
+            fi
               ;;
           esac
 

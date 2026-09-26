@@ -124,7 +124,7 @@ QAI_PROVIDER=gemini GEMINI_API_KEY=... qai scan https://example.com
 
 If the chosen or auto-detected provider fails with a billing, auth, or model-not-found error, qai tries the next provider that has a key. The log shows `Trying provider: …` and `Using provider: …` for the one that succeeded. When none of them work, CI keeps the soft-skip `skipped: provider unavailable`.
 
-In CI, set the repository variable `QAI_PROVIDER` to the same name. No workflow edit. The QAI Code Review and qa-test jobs read that variable and pass `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, and `GEMINI_API_KEY` when those secrets exist. Leave the variable empty to keep auto-detect. qa-test runs Claude Code when the provider is `anthropic` or unset, and `qai scan` for `openai`, `gemini`, `codex`, or `ollama`. A qa-test run that produces no report because the provider failed is `skipped: provider unavailable`. Critical and high findings in a real report still fail the check.
+In CI, set the repository variable `QAI_PROVIDER` to the same name. No workflow edit. The QAI Code Review and qa-test jobs read that variable and pass `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, and `GEMINI_API_KEY` when those secrets exist. Leave the variable empty to keep auto-detect. qa-test runs Claude Code when the provider is `anthropic` or unset, and `qai scan` for `openai`, `gemini`, `codex`, or `ollama`. If Claude Code fails with a billing, auth, or model error and another provider key is set, qa-test runs `qai scan` so that key is tried. A qa-test run that still produces no report is `skipped: provider unavailable`. Critical and high findings in a real report still fail the check.
 
 ### Playwright helper
 

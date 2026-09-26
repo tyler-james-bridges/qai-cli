@@ -13,6 +13,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Check QA severity counter
+        run: bash scripts/count-qa-severity.test.sh
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:

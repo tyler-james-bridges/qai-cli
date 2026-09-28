@@ -1,6 +1,6 @@
 # Intentional Bugs in Demo Site
 
-This site contains intentional bugs for testing qai.
+This site contains intentional bugs for testing qai. `docs/smoke/` is a separate clean page and is not part of this list.
 
 | Bug                                    | Category      | Severity | Location                 |
 | -------------------------------------- | ------------- | -------- | ------------------------ |

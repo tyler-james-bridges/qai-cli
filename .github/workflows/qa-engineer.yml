@@ -3,10 +3,14 @@ name: qai
 # This workflow is designed to be copied to your repository.
 # It can run manually OR on pull requests.
 #
-# For PR testing, you need a preview deployment. Options:
-# 1. Vercel/Netlify: Set PREVIEW_URL env var in your deployment workflow
-# 2. workflow_call: Call this workflow from another workflow with the URL
-# 3. Manual: Uncomment pull_request trigger and set PREVIEW_URL secret/var
+# qa-test URL order:
+# 1. workflow input `url`
+# 2. repository variable QA_TEST_URL
+# 3. GitHub Pages `<owner>.github.io/<repo>/smoke/` (docs/smoke, no seeded bugs)
+# 4. that page served from the checkout when Pages does not return 200 yet
+# 5. PREVIEW_URL variable or secret
+#
+# This repo's PREVIEW_URL is the seeded demo. The gate uses the smoke page instead.
 
 on:
   pull_request:
@@ -14,7 +18,7 @@ on:
   workflow_dispatch:
     inputs:
       url:
-        description: 'URL to test (required for manual runs)'
+        description: 'URL to test (default: Pages /smoke/)'
         required: false
         type: string
       focus:
@@ -66,28 +70,6 @@ jobs:
     timeout-minutes: 12
 
     steps:
-      - name: Determine Test URL
-        id: get-url
-        env:
-          INPUT_URL: ${{ inputs.url }}
-          PREVIEW_URL: ${{ vars.PREVIEW_URL || secrets.PREVIEW_URL || '' }}
-        run: |
-          # Priority: explicit input > PREVIEW_URL var/secret
-          if [ -n "$INPUT_URL" ]; then
-            echo "test_url=$INPUT_URL" >> $GITHUB_OUTPUT
-            echo "✓ Using provided URL: $INPUT_URL"
-          elif [ -n "$PREVIEW_URL" ]; then
-            echo "test_url=$PREVIEW_URL" >> $GITHUB_OUTPUT
-            echo "✓ Using PREVIEW_URL: $PREVIEW_URL"
-          else
-            echo "❌ Error: No URL provided"
-            echo ""
-            echo "For manual runs: provide a URL in the workflow inputs"
-            echo "For PR runs: set PREVIEW_URL as a repository variable or secret"
-            echo "For Vercel/Netlify: chain this workflow after your deploy workflow"
-            exit 1
-          fi
-
       - name: Validate API Key
         env:
           QAI_PROVIDER: ${{ vars.QAI_PROVIDER }}
@@ -113,6 +95,69 @@ jobs:
 
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Determine Test URL
+        id: get-url
+        env:
+          INPUT_URL: ${{ inputs.url }}
+          QA_TEST_URL: ${{ vars.QA_TEST_URL }}
+          PREVIEW_URL: ${{ vars.PREVIEW_URL || secrets.PREVIEW_URL || '' }}
+        run: |
+          # input > QA_TEST_URL > published Pages /smoke/ > checkout docs/smoke > PREVIEW_URL
+          repo="${GITHUB_REPOSITORY#*/}"
+          smoke_url="https://${GITHUB_REPOSITORY_OWNER}.github.io/${repo}/smoke/"
+
+          if [ -n "$INPUT_URL" ]; then
+            echo "test_url=$INPUT_URL" >> $GITHUB_OUTPUT
+            echo "✓ Using provided URL: $INPUT_URL"
+            exit 0
+          fi
+          if [ -n "$QA_TEST_URL" ]; then
+            echo "test_url=$QA_TEST_URL" >> $GITHUB_OUTPUT
+            echo "✓ Using QA_TEST_URL: $QA_TEST_URL"
+            exit 0
+          fi
+
+          smoke_code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "$smoke_url" || true)
+          if [ "$smoke_code" = "200" ]; then
+            echo "test_url=$smoke_url" >> $GITHUB_OUTPUT
+            echo "✓ Using smoke page: $smoke_url"
+            exit 0
+          fi
+
+          if [ -f docs/smoke/index.html ]; then
+            echo "Smoke page HTTP ${smoke_code:-000}; serving docs/smoke from this checkout"
+            setsid python3 -m http.server 4173 --bind 127.0.0.1 --directory docs/smoke >/tmp/qai-smoke-server.log 2>&1 < /dev/null &
+            ok=0
+            for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do
+              if curl -sf -o /dev/null --max-time 2 http://127.0.0.1:4173/; then
+                ok=1
+                break
+              fi
+              sleep 0.25
+            done
+            if [ "$ok" != 1 ]; then
+              echo "❌ Error: local smoke server did not become ready"
+              cat /tmp/qai-smoke-server.log >&2 || true
+              exit 1
+            fi
+            echo "test_url=http://127.0.0.1:4173/" >> $GITHUB_OUTPUT
+            echo "✓ Using checkout smoke page: http://127.0.0.1:4173/"
+            exit 0
+          fi
+
+          if [ -n "$PREVIEW_URL" ]; then
+            echo "test_url=$PREVIEW_URL" >> $GITHUB_OUTPUT
+            echo "✓ Using PREVIEW_URL: $PREVIEW_URL"
+            exit 0
+          fi
+
+          echo "❌ Error: No URL provided"
+          echo ""
+          echo "For manual runs: provide a URL in the workflow inputs"
+          echo "For PR runs: add docs/smoke/index.html, set QA_TEST_URL, or set PREVIEW_URL"
+          echo "For Vercel/Netlify: pass the preview URL as the workflow input or QA_TEST_URL"
+          exit 1
 
       - name: Setup Node.js
         uses: actions/setup-node@v4

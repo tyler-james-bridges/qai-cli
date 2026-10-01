@@ -1,0 +1,482 @@
+#!/usr/bin/env bash
+# Drive the qai CLI from this checkout. Scratch lives under /tmp; evidence is separate.
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../.." && pwd)"
+HELPER_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+STATE_ROOT="/tmp/qai-cli-verify"
+EVIDENCE_ROOT="/tmp/qai-cli-verify-evidence"
+CURRENT="$STATE_ROOT/current"
+HEALTH_SERVER="$HELPER_DIR/health-server.js"
+PLACEHOLDER_FIXTURE="$ROOT/scripts/verify/fixtures/placeholder"
+VERIFY_NOW="2026-08-03T23:45:00.000Z"
+
+fail() {
+  echo "FAIL $*" >&2
+  exit 1
+}
+
+usage() {
+  cat <<'EOF'
+Usage:
+  qai-verify launch
+  qai-verify doctor
+  qai-verify drive check|verify|risk|flow
+  qai-verify cleanup
+EOF
+}
+
+tmux_cmd() {
+  if [[ -f /exec-daemon/tmux.portal.conf ]]; then
+    tmux -f /exec-daemon/tmux.portal.conf "$@"
+  else
+    tmux "$@"
+  fi
+}
+
+require_tmux() {
+  command -v tmux >/dev/null 2>&1 || fail "tmux is required to isolate a qai drive"
+}
+
+qai_version_line() {
+  node "$ROOT/src/index.js" --version | tr -d '\r'
+}
+
+expected_version_line() {
+  node -p "'qai v' + require('$ROOT/package.json').version"
+}
+
+require_current() {
+  [[ -f "$CURRENT" ]] || fail "no active run. Run qai-verify launch first"
+  RUN_ID="$(tr -d '[:space:]' < "$CURRENT")"
+  [[ -n "$RUN_ID" ]] || fail "current run id is empty"
+  RUN_DIR="$STATE_ROOT/runs/$RUN_ID"
+  [[ -d "$RUN_DIR" ]] || fail "run dir missing: $RUN_DIR"
+  EVIDENCE_DIR="$EVIDENCE_ROOT/$RUN_ID"
+}
+
+append_session() {
+  echo "$1" >> "$RUN_DIR/sessions"
+}
+
+wait_for_file() {
+  local file="$1"
+  local timeout="$2"
+  local deadline=$((SECONDS + timeout))
+  while [[ ! -s "$file" ]] && (( SECONDS < deadline )); do
+    sleep 0.1
+  done
+  [[ -s "$file" ]]
+}
+
+run_script_in_tmux() {
+  local name="$1"
+  local script="$2"
+  local timeout="$3"
+  local pane="$4"
+  local session="qai-verify-${RUN_ID}-${name}"
+  local done_file="$RUN_DIR/${name}.done"
+  rm -f "$done_file"
+  require_tmux
+  tmux_cmd new-session -d -s "$session" -c "$ROOT" -- "bash --noprofile --norc"
+  append_session "$session"
+  tmux_cmd set-option -t "$session" history-limit 20000
+  tmux_cmd set-option -t "$session" remain-on-exit on
+  sleep 0.3
+  tmux_cmd send-keys -t "$session" "bash '$script'" C-m
+  if ! wait_for_file "$done_file" "$timeout"; then
+    tmux_cmd capture-pane -pt "$session" -S -20000 > "$RUN_DIR/${name}.pane-timeout.txt" || true
+    fail "timed out waiting for $name. Pane saved at $RUN_DIR/${name}.pane-timeout.txt. Run qai-verify cleanup"
+  fi
+  mkdir -p "$(dirname "$pane")"
+  tmux_cmd capture-pane -pt "$session" -S -20000 > "$pane" || true
+}
+
+start_health_server() {
+  local session="qai-verify-${RUN_ID}-health"
+  local port_file="$RUN_DIR/health.port"
+  rm -f "$port_file"
+  require_tmux
+  tmux_cmd new-session -d -s "$session" -c "$ROOT" -- \
+    "node '$HEALTH_SERVER' '$port_file'"
+  append_session "$session"
+  wait_for_file "$port_file" 10 || fail "health server did not write a port. Run qai-verify cleanup"
+  HEALTH_PORT="$(tr -d '[:space:]' < "$port_file")"
+  [[ "$HEALTH_PORT" =~ ^[0-9]+$ ]] || fail "health port is not numeric: $HEALTH_PORT"
+  local deadline=$((SECONDS + 10))
+  local ok=1
+  while (( SECONDS < deadline )); do
+    if node -e '
+      fetch(process.argv[1], { signal: AbortSignal.timeout(1000) }).then(async (response) => {
+        const text = await response.text();
+        if (!response.ok || text !== "{\"status\":\"healthy\"}") process.exit(1);
+        process.exit(0);
+      }).catch(() => process.exit(1));
+    ' "http://127.0.0.1:${HEALTH_PORT}/api/health"; then
+      ok=0
+      break
+    fi
+    sleep 0.1
+  done
+  [[ "$ok" -eq 0 ]] || fail "health server on port $HEALTH_PORT did not serve healthy JSON"
+  HEALTH_URL="http://127.0.0.1:${HEALTH_PORT}/api/health"
+}
+
+assert_exit_zero() {
+  local file="$1"
+  local label="$2"
+  [[ -f "$file" ]] || fail "$label exit file missing: $file"
+  local code
+  code="$(tr -d '[:space:]' < "$file")"
+  [[ "$code" == "0" ]] || fail "$label exit code was $code"
+}
+
+assert_contains() {
+  local file="$1"
+  local needle="$2"
+  local label="$3"
+  [[ -f "$file" ]] || fail "$label missing file $file"
+  grep -F -q -- "$needle" "$file" || fail "$label did not contain: $needle"
+}
+
+capture_git_status() {
+  local dest="$1"
+  git -C "$ROOT" status --porcelain > "$dest"
+}
+
+doctor() {
+  local node_major actual expected help_text
+  node_major="$(node -p "Number(process.versions.node.split('.')[0])")"
+  [[ "$node_major" -ge 20 ]] || fail "node must be >= 20, found $(node -v)"
+  [[ -f "$ROOT/src/index.js" ]] || fail "missing CLI entrypoint $ROOT/src/index.js"
+  actual="$(qai_version_line)"
+  expected="$(expected_version_line)"
+  [[ "$actual" == "$expected" ]] || fail "version mismatch: expected $expected, got $actual"
+  help_text="$(node "$ROOT/src/index.js" help)"
+  grep -F -q 'qai check <url>' <<<"$help_text" || fail "help is missing qai check"
+  grep -F -q 'qai verify <contract>' <<<"$help_text" || fail "help is missing qai verify"
+  grep -F -q 'qai risk' <<<"$help_text" || fail "help is missing qai risk"
+  grep -F -q 'qai flow <url> <goal>' <<<"$help_text" || fail "help is missing qai flow"
+  local flow_module="missing"
+  if node -e 'require.resolve("playwright", { paths: [process.argv[1]] })' "$ROOT" >/dev/null 2>&1; then
+    flow_module="present"
+  fi
+  local run_note="none"
+  if [[ -f "$CURRENT" ]]; then
+    run_note="$(tr -d '[:space:]' < "$CURRENT")"
+    local recorded="$STATE_ROOT/runs/$run_note/launch.json"
+    [[ -f "$recorded" ]] || fail "launch record missing for run $run_note"
+    node -e '
+      const fs = require("fs");
+      const record = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+      if (record.qai !== process.argv[2] || record.ready !== true) process.exit(1);
+    ' "$recorded" "$actual" || fail "launch record does not match $actual"
+  fi
+  echo "DOCTOR ok"
+  echo "$actual"
+  echo "node $(node -v)"
+  echo "repo $ROOT"
+  echo "run $run_note"
+  echo "flow_module $flow_module"
+}
+
+launch() {
+  [[ ! -f "$CURRENT" ]] || fail "a run is already active ($(tr -d '[:space:]' < "$CURRENT")). Run qai-verify cleanup first"
+  local actual expected run_id run_dir
+  actual="$(qai_version_line)"
+  expected="$(expected_version_line)"
+  [[ "$actual" == "$expected" ]] || fail "not ready: expected $expected, got $actual"
+  run_id="$(date -u +%Y%m%dT%H%M%SZ)-$$"
+  run_dir="$STATE_ROOT/runs/$run_id"
+  mkdir -p "$run_dir" "$EVIDENCE_ROOT/$run_id"
+  node -e '
+    const fs = require("fs");
+    const record = {
+      runId: process.argv[1],
+      repo: process.argv[2],
+      node: process.argv[3],
+      qai: process.argv[4],
+      ready: true,
+    };
+    fs.writeFileSync(process.argv[5], JSON.stringify(record, null, 2) + "\n");
+  ' "$run_id" "$ROOT" "$(node -v)" "$actual" "$run_dir/launch.json"
+  printf '%s\n' "$run_id" > "$CURRENT"
+  echo "READY $actual"
+  echo "RUN $run_id"
+  echo "EVIDENCE_DIR=$EVIDENCE_ROOT/$run_id"
+}
+
+finish_script() {
+  local done_file="$1"
+  cat <<EOF
+
+echo QAI_VERIFY_DONE
+echo done > "$done_file"
+EOF
+}
+
+drive_check() {
+  require_current
+  doctor >/dev/null
+  local evidence="$EVIDENCE_DIR/check"
+  mkdir -p "$evidence"
+  capture_git_status "$evidence/git-status-before.txt"
+  start_health_server
+  printf 'url %s\nport %s\n' "$HEALTH_URL" "$HEALTH_PORT" > "$evidence/meta.txt"
+  local script="$RUN_DIR/drive-check.sh"
+  local done_file="$RUN_DIR/check.done"
+  cat > "$script" <<EOF
+set +e
+cd "$ROOT"
+node src/index.js check "$HEALTH_URL" > "$evidence/explicit.stdout" 2> "$evidence/explicit.stderr"
+echo \$? > "$evidence/explicit.exit"
+node src/index.js check "$HEALTH_URL" --json --out "$evidence/report.json" > "$evidence/json.stdout" 2> "$evidence/json.stderr"
+echo \$? > "$evidence/json.exit"
+node src/index.js "$HEALTH_URL" > "$evidence/bare.stdout" 2> "$evidence/bare.stderr"
+echo \$? > "$evidence/bare.exit"
+set -e
+EOF
+  finish_script "$done_file" >> "$script"
+  run_script_in_tmux check "$script" 60 "$evidence/check.pane.txt"
+  assert_exit_zero "$evidence/explicit.exit" "check"
+  assert_exit_zero "$evidence/json.exit" "check --json"
+  assert_exit_zero "$evidence/bare.exit" "bare url"
+  assert_contains "$evidence/explicit.stdout" "qai check — PASS" "check stdout"
+  assert_contains "$evidence/explicit.stdout" "VERDICT  PASS" "check verdict"
+  assert_contains "$evidence/explicit.stdout" "JSON health status is healthy." "check reason"
+  assert_contains "$evidence/explicit.stderr" "qai check: fetching live HTTP evidence..." "check stderr"
+  [[ ! -s "$evidence/json.stderr" ]] || fail "check --json wrote stderr"
+  assert_contains "$evidence/bare.stdout" "qai check — PASS" "bare stdout"
+  node -e '
+    const fs = require("fs");
+    const report = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+    const observed = report.criteria[0].evidence[0].observed;
+    if (report.verdict !== "pass") process.exit(1);
+    if (report.command !== "check") process.exit(1);
+    if (observed.status !== 200 || observed.healthStatus !== "healthy" || observed.kind !== "json") {
+      process.exit(1);
+    }
+    const stdout = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
+    if (stdout.verdict !== "pass") process.exit(1);
+  ' "$evidence/report.json" "$evidence/json.stdout" || fail "check JSON report was not a healthy pass"
+  capture_git_status "$evidence/git-status-after.txt"
+  cmp -s "$evidence/git-status-before.txt" "$evidence/git-status-after.txt" || fail "qai check changed the worktree"
+  echo "DRIVE check ok"
+  echo "EVIDENCE_DIR=$evidence"
+}
+
+init_disposable_repo() {
+  local repo="$1"
+  git init -q -b main "$repo"
+  git -C "$repo" config user.name "qai-verify"
+  git -C "$repo" config user.email "qai-verify@example.test"
+  git -C "$repo" config commit.gpgsign false
+  printf 'fixture\n' > "$repo/README.md"
+  git -C "$repo" add README.md
+  git -C "$repo" -c commit.gpgsign=false commit -q -m fixture
+}
+
+drive_verify() {
+  require_current
+  doctor >/dev/null
+  local evidence="$EVIDENCE_DIR/verify"
+  local repo="$RUN_DIR/verify-repo"
+  local contract_dir="$RUN_DIR/verify-contract"
+  mkdir -p "$evidence" "$contract_dir"
+  init_disposable_repo "$repo"
+  local sha
+  sha="$(git -C "$repo" rev-parse HEAD)"
+  cp "$PLACEHOLDER_FIXTURE/pass.json" "$contract_dir/pass.json"
+  cp "$PLACEHOLDER_FIXTURE/claim.md" "$contract_dir/claim.md"
+  node -e '
+    const fs = require("fs");
+    const contract = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+    contract.revision = process.argv[2];
+    fs.writeFileSync(process.argv[3], JSON.stringify(contract, null, 2) + "\n");
+  ' "$PLACEHOLDER_FIXTURE/pass.contract.json" "$sha" "$contract_dir/pass.contract.json"
+  printf 'repo %s\nsha %s\nnow %s\n' "$repo" "$sha" "$VERIFY_NOW" > "$evidence/meta.txt"
+  local script="$RUN_DIR/drive-verify.sh"
+  local done_file="$RUN_DIR/verify.done"
+  cat > "$script" <<EOF
+set +e
+cd "$ROOT"
+export QAI_VERIFY_NOW="$VERIFY_NOW"
+node src/index.js verify "$contract_dir/pass.contract.json" --claim "$contract_dir/claim.md" --repo "$repo" > "$evidence/human.stdout" 2> "$evidence/human.stderr"
+echo \$? > "$evidence/human.exit"
+node src/index.js verify "$contract_dir/pass.contract.json" --claim "$contract_dir/claim.md" --repo "$repo" --json --out "$evidence/report.json" > "$evidence/json.stdout" 2> "$evidence/json.stderr"
+echo \$? > "$evidence/json.exit"
+set -e
+EOF
+  finish_script "$done_file" >> "$script"
+  run_script_in_tmux verify "$script" 60 "$evidence/verify.pane.txt"
+  assert_exit_zero "$evidence/human.exit" "verify"
+  assert_exit_zero "$evidence/json.exit" "verify --json"
+  assert_contains "$evidence/human.stdout" "qai verify — PASS" "verify stdout"
+  assert_contains "$evidence/human.stdout" "VERDICT  PASS" "verify verdict"
+  assert_contains "$evidence/human.stderr" "qai verify: collecting declared read-only evidence..." "verify stderr"
+  [[ ! -s "$evidence/json.stderr" ]] || fail "verify --json wrote stderr"
+  node -e '
+    const fs = require("fs");
+    const report = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+    if (report.verdict !== "pass" || report.command !== "verify") process.exit(1);
+    const stdout = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
+    if (stdout.verdict !== "pass") process.exit(1);
+  ' "$evidence/report.json" "$evidence/json.stdout" || fail "verify JSON report was not a pass"
+  echo "DRIVE verify ok"
+  echo "EVIDENCE_DIR=$evidence"
+}
+
+drive_risk() {
+  require_current
+  doctor >/dev/null
+  local evidence="$EVIDENCE_DIR/risk"
+  local empty_repo="$RUN_DIR/risk-empty"
+  local skip_repo="$RUN_DIR/risk-skip"
+  mkdir -p "$evidence"
+  init_disposable_repo "$empty_repo"
+  init_disposable_repo "$skip_repo"
+  printf 'change\n' >> "$skip_repo/README.md"
+  git -C "$skip_repo" checkout -q -b change
+  git -C "$skip_repo" add README.md
+  git -C "$skip_repo" -c commit.gpgsign=false commit -q -m change
+  local script="$RUN_DIR/drive-risk.sh"
+  local done_file="$RUN_DIR/risk.done"
+  cat > "$script" <<EOF
+set +e
+cd "$ROOT"
+env -u TYPESAFE_API_KEY node src/index.js risk --base main --repo "$empty_repo" > "$evidence/empty.stdout" 2> "$evidence/empty.stderr"
+echo \$? > "$evidence/empty.exit"
+env -u TYPESAFE_API_KEY node src/index.js risk --base main --repo "$skip_repo" --json --out "$evidence/skip-report.json" > "$evidence/skip.stdout" 2> "$evidence/skip.stderr"
+echo \$? > "$evidence/skip.exit"
+set -e
+EOF
+  finish_script "$done_file" >> "$script"
+  run_script_in_tmux risk "$script" 60 "$evidence/risk.pane.txt"
+  assert_exit_zero "$evidence/empty.exit" "risk empty"
+  assert_exit_zero "$evidence/skip.exit" "risk skip"
+  assert_contains "$evidence/empty.stdout" "qai risk — AUTO-OK" "risk empty stdout"
+  assert_contains "$evidence/empty.stdout" "No changes in the diff. No TypeSafe judgment needed." "risk empty summary"
+  assert_contains "$evidence/empty.stdout" "VERDICT  AUTO-OK" "risk empty verdict"
+  [[ ! -s "$evidence/skip.stderr" ]] || fail "risk --json wrote stderr"
+  node -e '
+    const fs = require("fs");
+    const report = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+    if (report.gate !== "skipped" || report.command !== "risk") process.exit(1);
+    if (!Array.isArray(report.reasons) || !report.reasons.includes("TYPESAFE_API_KEY is not set")) process.exit(1);
+    if (report.judgments !== null) process.exit(1);
+    const stdout = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
+    if (stdout.gate !== "skipped") process.exit(1);
+  ' "$evidence/skip-report.json" "$evidence/skip.stdout" || fail "risk skip report was not a keyless skip"
+  echo "DRIVE risk ok"
+  echo "EVIDENCE_DIR=$evidence"
+}
+
+ensure_playwright() {
+  if node -e 'require.resolve("playwright", { paths: [process.argv[1]] })' "$ROOT" >/dev/null 2>&1; then
+    return 0
+  fi
+  echo "INSTALL npm ci --ignore-scripts (playwright is required to load qai flow)"
+  npm ci --ignore-scripts --prefix "$ROOT"
+  node -e 'require.resolve("playwright", { paths: [process.argv[1]] })' "$ROOT" >/dev/null 2>&1 || fail "playwright is still not resolvable after npm ci"
+}
+
+drive_flow() {
+  require_current
+  doctor >/dev/null
+  ensure_playwright
+  local evidence="$EVIDENCE_DIR/flow"
+  mkdir -p "$evidence"
+  local script="$RUN_DIR/drive-flow.sh"
+  local done_file="$RUN_DIR/flow.done"
+  cat > "$script" <<EOF
+set +e
+cd "$ROOT"
+env -u TYPESAFE_API_KEY -u ANTHROPIC_API_KEY -u OPENAI_API_KEY -u GEMINI_API_KEY -u CODEX_API_KEY -u API_KEY -u PROVIDER -u QAI_PROVIDER \
+  node src/index.js flow "http://127.0.0.1:9/" "Open the pricing page" > "$evidence/human.stdout" 2> "$evidence/human.stderr"
+echo \$? > "$evidence/human.exit"
+env -u TYPESAFE_API_KEY -u ANTHROPIC_API_KEY -u OPENAI_API_KEY -u GEMINI_API_KEY -u CODEX_API_KEY -u API_KEY -u PROVIDER -u QAI_PROVIDER \
+  node src/index.js flow "http://127.0.0.1:9/" "Open the pricing page" --json > "$evidence/json.stdout" 2> "$evidence/json.stderr"
+echo \$? > "$evidence/json.exit"
+set -e
+EOF
+  finish_script "$done_file" >> "$script"
+  run_script_in_tmux flow "$script" 60 "$evidence/flow.pane.txt"
+  assert_exit_zero "$evidence/human.exit" "flow"
+  assert_exit_zero "$evidence/json.exit" "flow --json"
+  assert_contains "$evidence/human.stdout" "qai flow — SKIPPED" "flow stdout"
+  assert_contains "$evidence/human.stdout" "SKIPPED: TYPESAFE_API_KEY is not set. No TypeSafe judgment ran." "flow summary"
+  assert_contains "$evidence/human.stdout" "VERDICT  SKIPPED" "flow verdict"
+  assert_contains "$evidence/human.stderr" "qai flow: running goal..." "flow stderr"
+  [[ ! -s "$evidence/json.stderr" ]] || fail "flow --json wrote stderr"
+  node -e '
+    const fs = require("fs");
+    const report = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+    if (report.status !== "skipped" || report.command !== "flow") process.exit(1);
+    if (report.wall_ms !== null || report.step_count !== 0 || report.steps.length !== 0) process.exit(1);
+    if (report.goal !== "Open the pricing page") process.exit(1);
+  ' "$evidence/json.stdout" || fail "flow JSON report was not a keyless skip"
+  echo "DRIVE flow ok"
+  echo "EVIDENCE_DIR=$evidence"
+}
+
+cleanup() {
+  if [[ ! -f "$CURRENT" ]]; then
+    echo "CLEANUP none"
+    return 0
+  fi
+  local run_id run_dir evidence
+  run_id="$(tr -d '[:space:]' < "$CURRENT")"
+  run_dir="$STATE_ROOT/runs/$run_id"
+  evidence="$EVIDENCE_ROOT/$run_id"
+  if [[ -f "$run_dir/sessions" ]]; then
+    local session
+    while IFS= read -r session; do
+      [[ -n "$session" ]] || continue
+      tmux_cmd kill-session -t "$session" || true
+    done < "$run_dir/sessions"
+  fi
+  if [[ -d "$run_dir" ]]; then
+    rm -rf "$run_dir"
+  fi
+  rm -f "$CURRENT"
+  printf '%s\n' "$evidence" > "$STATE_ROOT/last-evidence-path"
+  if [[ -d "$evidence" ]]; then
+    echo "CLEANUP done evidence=$evidence"
+  else
+    echo "CLEANUP done evidence-missing run=$run_id"
+  fi
+}
+
+main() {
+  local cmd="${1:-}"
+  case "$cmd" in
+    launch)
+      launch
+      ;;
+    doctor)
+      doctor
+      ;;
+    drive)
+      local feature="${2:-}"
+      case "$feature" in
+        check) drive_check ;;
+        verify) drive_verify ;;
+        risk) drive_risk ;;
+        flow) drive_flow ;;
+        *)
+          usage >&2
+          fail "drive expects check, verify, risk, or flow"
+          ;;
+      esac
+      ;;
+    cleanup)
+      cleanup
+      ;;
+    *)
+      usage >&2
+      exit 1
+      ;;
+  esac
+}
+
+main "$@"
